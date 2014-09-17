@@ -19,6 +19,7 @@ object ApplicationBuild extends Build {
       "org.scalaz" %% "scalaz-core" % scalazVersion,
       "org.scalaz.stream" %% "scalaz-stream" % "0.5a",
       "joda-time" % "joda-time" % "2.4",
+      "com.typesafe" % "config" % "1.2.1",
       "org.scalacheck" %% "scalacheck" % "1.11.3" % "test",
       "org.scalaz" %% "scalaz-scalacheck-binding" % scalazVersion % "test"
     ),
