@@ -29,21 +29,46 @@ object TextWALHandlerSpec extends Properties("TextWALHandler") {
     values <- identsCleaned.map( _ => arbitrary[Double]).sequence
   } yield DataPoint[Double](ts, identsCleaned, values))
 
-  property("to and from file") = forAllNoShrink(arbitrary[Seq[DataPoint[Double]]])((m: Seq[DataPoint[Double]]) => {
-    val f = java.io.File.createTempFile("test_text_wal_handler", ".dat")
-    f.deleteOnExit()
-    val wal = new TextWALHandler(f)
-
-    if (m.size > 0) {
-      //Dump to file
-      Process.emitAll(m).to(wal.writer).run.run
-      require(f.exists(), "file does not exist")
-      //Read from file
-      val result = wal.reader.runLog.run
-      result == m
-    } else { //Nothing will be written for no data coming in
-      true
+  def withTempDir[T](f:java.io.File => T) = {
+    val file = java.nio.file.Files.createTempDirectory("test_text_wal_handler").toFile()
+    try {
+      f(file)
+    } finally {
+      file.delete()
     }
+  }
+
+
+  property("to and from file") = forAllNoShrink(arbitrary[Seq[DataPoint[Double]]])((m: Seq[DataPoint[Double]]) => {
+    withTempDir(f => {
+      val wal = new TextWALHandler(f)
+
+      if (m.size > 0) {
+        //Dump to file
+        Process.emitAll(m).to(wal.writer).run.run
+        //Read from file
+        val result = wal.reader.runLog.run
+        result == m
+      } else { //Nothing will be written for no data coming in
+        true
+      }
+    })
+  })
+
+  property("to and from file, make sure rotation occurs") = forAllNoShrink(arbitrary[Seq[DataPoint[Double]]])((m: Seq[DataPoint[Double]]) => {
+    withTempDir(f => {
+      val wal = new TextWALHandler(f, rotateSize = 256)
+
+      if (m.size > 0) {
+        //Dump to file
+        Process.emitAll(m).to(wal.writer).run.run
+        //Read from file
+        val result = wal.reader.runLog.run
+        result == m
+      } else { //Nothing will be written for no data coming in
+        true
+      }
+    })
   })
 
 }
