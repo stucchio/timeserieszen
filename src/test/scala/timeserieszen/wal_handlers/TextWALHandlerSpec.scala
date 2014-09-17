@@ -32,12 +32,11 @@ object TextWALHandlerSpec extends Properties("TextWALHandler") {
   property("to and from file") = forAllNoShrink(arbitrary[Seq[DataPoint[Double]]])((m: Seq[DataPoint[Double]]) => {
     val f = java.io.File.createTempFile("test_text_wal_handler", ".dat")
     f.deleteOnExit()
-    val stream = Process.emitAll(m)
     val wal = new TextWALHandler(f)
 
     if (m.size > 0) {
       //Dump to file
-      stream.to(wal.writer).run.run
+      Process.emitAll(m).to(wal.writer).run.run
       require(f.exists(), "file does not exist")
       //Read from file
       val result = wal.reader.runLog.run
