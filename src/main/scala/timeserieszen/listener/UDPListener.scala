@@ -40,5 +40,5 @@ object UDPListener {
     case _ => Process.halt
   }
 
-  def listen(port: Int): Process[Task,DataPoint[Double]] = UDP.listenUDP(port).flatMap( packetToMessage _)
+  def apply(port: Int): Process[Task,DataPoint[Double]] = UDP.listenUDP(port).flatMap( packetToMessage _)
 }
