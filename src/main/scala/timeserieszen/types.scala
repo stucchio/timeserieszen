@@ -3,7 +3,6 @@ package com.timeserieszen
 import scalaz.stream._
 import scalaz.concurrent._
 import org.joda.time.DateTime
-import akka.util.{ByteString, ByteStringBuilder}
 
 case class SeriesIdent(name: String) extends AnyVal
 
@@ -18,7 +17,10 @@ sealed trait DataPoint[T] {
 object DataPoint {
   def apply[T](timestamp: Long, identifiers: Seq[SeriesIdent], values: Seq[T]): DataPoint[T] = FlatDataPoint(timestamp, identifiers, values)
   def apply[T](timestamp: Long, data: Map[SeriesIdent, T]): DataPoint[T] = SimpleDatapoint(timestamp, data)
-  val charset = java.nio.charset.StandardCharsets.UTF_8
+
+  implicit object Ordering extends Ordering[DataPoint[_]] {
+  def compare(a: DataPoint[_], b: DataPoint[_]) = a.timestamp.compare(b.timestamp)
+  }
 }
 
 case class SimpleDatapoint[T](timestamp: Long, data: Map[SeriesIdent, T]) extends DataPoint[T] {
