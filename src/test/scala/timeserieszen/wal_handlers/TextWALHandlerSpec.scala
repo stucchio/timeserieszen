@@ -9,17 +9,10 @@ import scalaz.stream._
 import scalacheck.ScalazProperties._
 import Arbitrary.arbitrary
 import Prop._
+import TestHelpers._
 
 object TextWALHandlerSpec extends Properties("TextWALHandler") {
   implicit def arbitrarySeriesIdent = Arbitrary( Gen.alphaStr.map(x => "a" + x.replace(" ", "")).map(SeriesIdent))
-
-  implicit object ArbitraryApplicative extends Applicative[Gen] {
-    def point[A](a: =>A) = Gen.oneOf(Seq(a))
-    def ap[A,B](ga: =>Gen[A])(gf: =>Gen[A=>B]) = for {
-      a <- ga
-      f <- gf
-    } yield (f(a))
-  }
 
   implicit val ArbitraryDataPoint = Arbitrary(for {
     ts <- arbitrary[Long]
