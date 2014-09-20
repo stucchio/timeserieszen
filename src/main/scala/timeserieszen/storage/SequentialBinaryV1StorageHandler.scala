@@ -9,7 +9,7 @@ object SequentialBinaryV1StorageHandler extends AtomicStorageHandler {
 
   final val VERSION_TAG: Long = 1 //NEVER CHANGE THIS, NEVER BUILD ANOTHER ATOMICSTORAGEHANDLER WITH THE SAME FORMAT TAG
 
-  def read(f: File): (Seq[Long], Seq[Double]) = {
+  def read(f: File): (Array[Long], Array[Double]) = {
     withFile(f)(input => {
       val fileLength = input.length()
       val versionTag = input.readLong()

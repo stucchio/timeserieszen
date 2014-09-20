@@ -6,7 +6,7 @@ import com.timeserieszen.Utils
 
 trait AtomicStorageHandler {
   // Returns sequence of timestamps, data points
-  def read(f: File): (Seq[Long], Seq[Double])
+  def read(f: File): (Array[Long], Array[Double])
 
   // This function returns the first and last datapoints stored in a file.
   // This should be overridden if the storage scheme allows it.

@@ -6,6 +6,32 @@ import org.joda.time.DateTime
 
 case class SeriesIdent(name: String) extends AnyVal
 
+sealed trait Series[T] {
+  def ident: SeriesIdent
+  def data: Seq[(Long,T)]
+  def times: Seq[Long] = data.map(_._1)
+  def values: Seq[T] = data.map(_._2)
+  def length = data.size
+}
+
+case class BufferedSeries[T](ident: SeriesIdent, timesA: Array[Long], valuesA: Array[T]) extends Series[T] {
+  require(timesA.size == valuesA.size)
+  require(timesA.size > 0)
+  override val times = timesA.toSeq
+  override val values = valuesA.toSeq
+  override lazy val data = {
+    val result = new Array[(Long,T)](timesA.size)
+    var i=0
+    while (i < timesA.size) {
+      result(i) = (timesA(i), valuesA(i))
+      i += 1
+    }
+    result.toSeq
+  }
+}
+
+case class BoxedSeries[T](ident: SeriesIdent, data: Seq[(Long,T)]) extends Series[T]
+
 sealed trait DataPoint[T] {
   def timestamp: Long //UTC time, java style
   def time: DateTime = new DateTime(timestamp)
