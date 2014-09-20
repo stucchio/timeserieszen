@@ -49,9 +49,13 @@ private object SequentialBinaryV1StorageHandler extends AtomicStorageHandler {
     val length = o.length()
     o.seek(length)
     var i=0
+    var lastTime: Long = times(0)-1
     while (i < times.size) {
-      o.writeLong(times(i))
-      o.writeDouble(values(i))
+      if (times(i) != lastTime) { //Do NOT write duplicate times to the file
+        o.writeLong(times(i))
+        o.writeDouble(values(i))
+        lastTime = times(i)
+      }
       i += 1
     }
   }
