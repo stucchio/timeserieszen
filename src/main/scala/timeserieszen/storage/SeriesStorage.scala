@@ -2,12 +2,21 @@ package com.timeserieszen.storage
 
 import com.timeserieszen._
 
+import scalaz._
+import Scalaz._
+import scalaz.stream._
+import scalaz.concurrent._
 import java.io._
 
 trait SeriesStorage[T] {
   def write(series: Series[T]): Unit
   def append(series: Series[T]): Unit
   def read(ident: SeriesIdent): Option[Series[T]]
+
+  private def deleteOrWrite(x: WALHandler.FileRemover \/ Series[T]): Task[Unit] = Task { x.fold( rm => rm(), write _ ) }
+
+  def sink: Sink[Task,(WALHandler.FileRemover \/ Series[T])] = Process.emit( deleteOrWrite _ ).repeat
+
 }
 
 class SeriesStorageFromAtomic(dataDir: File, stagingDir: File, atomicStore: AtomicStorageHandler) extends SeriesStorage[Double] {

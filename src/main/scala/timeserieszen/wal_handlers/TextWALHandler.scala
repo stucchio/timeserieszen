@@ -26,6 +26,8 @@ case class TextWALHandler(waldir: java.io.File, rotateSize: Long = 1024*256, pre
 
   protected lazy val queue = async.boundedQueue[File](queueSize)
 
+  import WALHandler._
+
   def flushedSeries: Process[Task, FileRemover \/ Series[Double]] = queue.dequeue.flatMap(f => {
     val serieses = scala.collection.mutable.HashMap[SeriesIdent, SeriesBuilder[Double]]()
 

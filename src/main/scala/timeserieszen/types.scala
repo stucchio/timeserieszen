@@ -59,10 +59,13 @@ case class FlatDataPoint[T](timestamp: Long, identifiers: Seq[SeriesIdent], valu
   def numSeries = identifiers.size
 }
 
-trait WALHandler[T] {
-  type FileRemover = (() => Unit)
 
+object WALHandler {
+  type FileRemover = (() => Unit)
+}
+
+trait WALHandler[T] {
   def writer: Sink[Task,DataPoint[T]]
-  def flushedSeries: Process[Task,FileRemover \/ Series[T]]
+  def flushedSeries: Process[Task,WALHandler.FileRemover \/ Series[T]]
   def reader: Process[Task,DataPoint[T]]
 }
