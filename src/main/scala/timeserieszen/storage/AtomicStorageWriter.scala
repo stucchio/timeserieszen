@@ -4,7 +4,7 @@ import java.io._
 import java.util.UUID
 import com.timeserieszen.Utils
 
-trait AtomicStorageHandler {
+private trait AtomicStorageHandler {
   // Returns sequence of timestamps, data points
   def read(f: File): (Array[Long], Array[Double])
 

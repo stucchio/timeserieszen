@@ -1,5 +1,6 @@
 package com.timeserieszen
 
+import scalaz._
 import scalaz.stream._
 import scalaz.concurrent._
 import org.joda.time.DateTime
@@ -43,10 +44,6 @@ sealed trait DataPoint[T] {
 object DataPoint {
   def apply[T](timestamp: Long, identifiers: Seq[SeriesIdent], values: Seq[T]): DataPoint[T] = FlatDataPoint(timestamp, identifiers, values)
   def apply[T](timestamp: Long, data: Map[SeriesIdent, T]): DataPoint[T] = SimpleDatapoint(timestamp, data)
-
-  implicit object Ordering extends Ordering[DataPoint[_]] {
-  def compare(a: DataPoint[_], b: DataPoint[_]) = a.timestamp.compare(b.timestamp)
-  }
 }
 
 case class SimpleDatapoint[T](timestamp: Long, data: Map[SeriesIdent, T]) extends DataPoint[T] {
@@ -63,6 +60,9 @@ case class FlatDataPoint[T](timestamp: Long, identifiers: Seq[SeriesIdent], valu
 }
 
 trait WALHandler[T] {
+  type FileRemover = (() => Unit)
+
   def writer: Sink[Task,DataPoint[T]]
+  def flushedSeries: Process[Task,FileRemover \/ Series[T]]
   def reader: Process[Task,DataPoint[T]]
 }

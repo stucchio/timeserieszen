@@ -5,8 +5,7 @@ import java.nio.ByteBuffer
 import java.util.UUID
 import com.timeserieszen.Utils
 
-object SequentialBinaryV1StorageHandler extends AtomicStorageHandler {
-
+private object SequentialBinaryV1StorageHandler extends AtomicStorageHandler {
   final val VERSION_TAG: Long = 1 //NEVER CHANGE THIS, NEVER BUILD ANOTHER ATOMICSTORAGEHANDLER WITH THE SAME FORMAT TAG
 
   def read(f: File): (Array[Long], Array[Double]) = {
