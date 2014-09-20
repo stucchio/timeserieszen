@@ -17,13 +17,14 @@ private class WALFile(waldir: File, rotateSize: Long=1024*256, prefix: String = 
 
   def closed = isClosed
 
+  var numEnqueued = 0
   private def closeFile = if (filewriter != null) {
     if (filewriter != null) {
       filewriter.flush()
       filewriter.close()
     }
     if (outputFile != null) {
-      notifyQueue.foreach(_.enqueueOne(outputFile))
+      notifyQueue.foreach(q => q.enqueueOne(outputFile).run)
     }
   }
 
@@ -66,5 +67,6 @@ private class WALFile(waldir: File, rotateSize: Long=1024*256, prefix: String = 
   def close() = {
     closeFile
     isClosed = true
+    notifyQueue.map(_.close.run)
   }
 }

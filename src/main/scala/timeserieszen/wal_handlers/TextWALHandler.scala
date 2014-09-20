@@ -10,8 +10,16 @@ import scalaz.stream.async.mutable.Queue
 import scala.collection.mutable.{HashMap, ArrayBuffer}
 import java.io._
 
-case class TextWALHandler(waldir: java.io.File, rotateSize: Long = 1024*256, prefix: String = "", val queueSize: Int = 32) extends WALHandler[Double]{
+case class TextWALHandler(waldir: java.io.File, rotateSize: Long = 1024*256, prefix: String = "", queueSize: Int = 0) extends WALHandler[Double]{
+  /**
+    * rotateSize - when the size of a WAL file *approximately* exceeds this, the log will be rotated.
+    *  prefix    - prefix the WAL files with this
+    * queueSize  - After the WAL files are written, a queue of completed WAL files is maintained.
+    *              A separate process should drain this queue and process the files.
+   */
   def this(fn: String) = this(new java.io.File(fn))
+
+  require(queueSize >= 0, "Queue size cannot be negative.")
 
   val writer = io.resource[WALFile,DataPoint[Double] => Task[Unit]](Task.delay { new WALFile(waldir, rotateSize, prefix, Some(queue)) }
       )( (f:WALFile) => Task.delay { f.close() }
