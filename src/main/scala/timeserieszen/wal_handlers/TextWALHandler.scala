@@ -24,13 +24,14 @@ case class TextWALHandler(waldir: java.io.File, rotateSize: Long = 1024*256, pre
     } ).map(Utils.stringToDatapoint _)
   }
 
-  protected lazy val queue = async.boundedQueue[File](queueSize)
+  private val queue = async.boundedQueue[File](queueSize)
 
   import WALHandler._
 
   def flushedSeries: Process[Task, FileRemover \/ Series[Double]] = queue.dequeue.flatMap(f => {
     val serieses = scala.collection.mutable.HashMap[SeriesIdent, SeriesBuilder[Double]]()
 
+    //Read all the series in the WAL
     io.linesR(f.toString).map(Utils.stringToDatapoint _).map(dp => {
       dp.iterator.foreach( kv => {
         val (k,v) = kv
@@ -41,13 +42,15 @@ case class TextWALHandler(waldir: java.io.File, rotateSize: Long = 1024*256, pre
       })
     }).run.run
 
+    //Now build a list of the series
     val data = new Array[FileRemover \/ Series[Double]](serieses.size)
     var i=0
     serieses.values.foreach(sb => {
       data(i) = sb.result().right
       i += 1
     })
-    val deleter: () => Unit = () => f.delete()
-    Process.emitAll(data.toSeq) ++ Process.emit( deleter.left )
+    val deleter: (() => Unit) = (() => f.delete())
+    //Finally emit
+    Process.emitAll(data) ++ Process.emit( deleter.left )
   })
 }
