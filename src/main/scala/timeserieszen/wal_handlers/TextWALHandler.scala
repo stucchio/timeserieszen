@@ -36,7 +36,9 @@ case class TextWALHandler(waldir: java.io.File, rotateSize: Long = 1024*256, pre
 
   import WALHandler._
 
-  def flushedSeries: Process[Task, FileRemover \/ Series[Double]] = queue.dequeue.flatMap(f => {
+  private val startingProcesses: Process[Task,File] = Process.emitAll(waldir.listFiles())
+
+  def flushedSeries: Process[Task, FileRemover \/ Series[Double]] = (startingProcesses ++ queue.dequeue).flatMap(f => {
     val serieses = scala.collection.mutable.HashMap[SeriesIdent, SeriesBuilder[Double]]()
 
     //Read all the series in the WAL
