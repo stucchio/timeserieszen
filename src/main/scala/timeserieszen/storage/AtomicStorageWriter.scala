@@ -10,46 +10,59 @@ trait AtomicStorageHandler {
 
   // This function returns the first and last datapoints stored in a file.
   // This should be overridden if the storage scheme allows it.
-  def minMax(f: File): (Long, Long) = {
+  protected def minMax(f: File): (Long, Long) = {
     val ts = read(f)._1
     (ts.min, ts.max)
   }
 
   //Appends a sequence of times, values to the file
-  def append(o: OutputStream, times: Seq[Long], values: Seq[Double]): Unit
+  protected def append(o: RandomAccessFile, times: Seq[Long], values: Seq[Double]): Unit
 
   //Write headers to a new file
-  def writeHeaders(o: OutputStream, times: Seq[Long], values: Seq[Double]): Unit
+  protected def writeHeaders(o: RandomAccessFile, times: Seq[Long], values: Seq[Double]): Unit
 
-  //Update headers for an existing file
-  def updateHeaders(f: File, newTimes: Seq[Long], newValues: Seq[Double]): Unit
-
-  def stagingDir: File
-
-  def create(destination: File, times: Seq[Long], values: Seq[Double]): Unit = {
-    val newFile = new File(UUID.randomUUID().toString + ".dat")
-    val o = new BufferedOutputStream(new FileOutputStream(newFile, true))
-    writeHeaders(o, times, values)
-    append(o, times, values)
-    o.close()
+  def create(destination: File, stagingDir: File, times: Seq[Long], values: Seq[Double]): Unit = {
+    val newFile = new File(stagingDir, UUID.randomUUID().toString + ".dat")
+    withFile(newFile)(o => {
+      val (t, v) = (times.toArray, values.toArray)
+      Utils.sortSeries(t,v)
+      writeHeaders(o, t, v)
+      append(o, t, v)
+    })
     newFile.renameTo(destination) //Atomic write
   }
 
-  def write(f: File, times: Seq[Long], values: Seq[Double]): Unit = {
+  protected def withFile[T](f: File)(proc: RandomAccessFile => T): T = {
+    val o = new RandomAccessFile(f, "rw")
+    try {
+      proc(o)
+    } finally {
+      o.close()
+    }
+  }
+
+  def write(f: File, stagingDir: File, times: Seq[Long], values: Seq[Double]): Unit = {
+    /* This method and read are the public interface of this method.
+     *
+     */
     require(times.length == values.length, "Times and values must have equal length")
     val (t, v) = (times.toArray, values.toArray)
     Utils.sortSeries(t,v)
 
-    val (minFile, maxFile) = minMax(f)
-    val (minNew, maxNew) = (t(0), t(-1))
-    if (minNew > maxFile) {
-      val o = new BufferedOutputStream(new FileOutputStream(f, true))
-      append(o, times, values)
-      o.close()
-      updateHeaders(f, times, values)
+    if (f.exists()) {
+      val (minFile, maxFile) = minMax(f)
+      val (minNew, maxNew) = (t(0), t(t.size-1))
+      if (minNew > maxFile) { //This is an easy append
+        withFile(f)(o => {
+          writeHeaders(o, times, values)
+          append(o, times, values)
+        })
+      } else { //The file requires rewriting
+        val (oldTimes, oldValues) = read(f)
+        create(f, stagingDir, oldTimes ++ times, oldValues ++ values)
+      }
     } else {
-      val (oldTimes, oldValues) = read(f)
-      create(f, oldTimes ++ times, oldValues ++ values)
+      create(f, stagingDir, times, values)
     }
   }
 }

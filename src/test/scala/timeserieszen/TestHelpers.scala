@@ -15,4 +15,30 @@ object TestHelpers {
       f <- gf
     } yield (f(a))
   }
+
+  def withTempDir[T](f:java.io.File => T) = {
+    val file = java.nio.file.Files.createTempDirectory("test_text_wal_handler").toFile()
+    try {
+      f(file)
+    } finally {
+      file.delete()
+    }
+  }
+
+  implicit val arbitrarySeriesIdent = Arbitrary( Gen.alphaStr.map(x => "a" + x.replace(" ", "")).map(SeriesIdent))
+
+  implicit val ArbitraryDataPoint = Arbitrary(for {
+    ts <- arbitrary[Long]
+    numVals <- Gen.chooseNum(1,10)
+    idents <- Gen.containerOfN[List,SeriesIdent](numVals, arbitrary[SeriesIdent])
+    identsCleaned = idents.toSet.toList
+    values <- identsCleaned.map( _ => arbitrary[Double]).sequence
+  } yield DataPoint[Double](ts, identsCleaned, values))
+
+  val genArrayForSeries: Gen[(Array[Long], Array[Double])] = for {
+    numVals <- Gen.choose(5,1024)
+    times = (1 to numVals).map(_.toLong).toArray
+    _ = scala.util.Sorting.quickSort(times)
+    values <- Gen.containerOfN[Array,Double](numVals, arbitrary[Double])
+  } yield (times, values)
 }

@@ -12,26 +12,6 @@ import Prop._
 import TestHelpers._
 
 object TextWALHandlerSpec extends Properties("TextWALHandler") {
-  implicit def arbitrarySeriesIdent = Arbitrary( Gen.alphaStr.map(x => "a" + x.replace(" ", "")).map(SeriesIdent))
-
-  implicit val ArbitraryDataPoint = Arbitrary(for {
-    ts <- arbitrary[Long]
-    numVals <- Gen.chooseNum(1,10)
-    idents <- Gen.containerOfN[List,SeriesIdent](numVals, arbitrary[SeriesIdent])
-    identsCleaned = idents.toSet.toList
-    values <- identsCleaned.map( _ => arbitrary[Double]).sequence
-  } yield DataPoint[Double](ts, identsCleaned, values))
-
-  def withTempDir[T](f:java.io.File => T) = {
-    val file = java.nio.file.Files.createTempDirectory("test_text_wal_handler").toFile()
-    try {
-      f(file)
-    } finally {
-      file.delete()
-    }
-  }
-
-
   property("to and from file") = forAllNoShrink(arbitrary[Seq[DataPoint[Double]]])((m: Seq[DataPoint[Double]]) => {
     withTempDir(f => {
       val wal = new TextWALHandler(f)
