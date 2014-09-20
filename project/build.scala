@@ -4,8 +4,6 @@ import Keys._
 
 object ApplicationBuild extends Build {
 
-  val scalazVersion = "7.1.0"
-
   lazy val commonSettings = Defaults.defaultSettings ++ Seq(
     organization := "com.timeserieszen",
     credentials += Credentials(Path.userHome / ".ivy2" / ".credentials"),
@@ -15,13 +13,10 @@ object ApplicationBuild extends Build {
     resolvers ++= myResolvers,
     name := "timeserieszen",
     //fork := true,
-    libraryDependencies ++= Seq(
-      "org.scalaz" %% "scalaz-core" % scalazVersion,
-      "org.scalaz.stream" %% "scalaz-stream" % "0.5a",
+    libraryDependencies ++= Dependencies.scalazDeps ++ Dependencies.loggingDeps ++ Seq(
       "joda-time" % "joda-time" % "2.4",
       "com.typesafe" % "config" % "1.2.1",
-      "org.scalacheck" %% "scalacheck" % "1.11.3" % "test",
-      "org.scalaz" %% "scalaz-scalacheck-binding" % scalazVersion % "test"
+      "org.scalacheck" %% "scalacheck" % "1.11.3" % "test"
     ),
     publishTo := Some(Resolver.file("file",  new File( "/tmp/injera-publish" )) )
   )
@@ -36,4 +31,19 @@ object ApplicationBuild extends Build {
   )
 
   lazy val timeserieszen = Project("timeserieszen", file("."), settings = commonSettings)
+
+  object Dependencies {
+    val logbackVersion = "1.0.13"
+    val logbackClassic = "ch.qos.logback" % "logback-classic" % logbackVersion
+    val logbackCore = "ch.qos.logback" % "logback-core" % logbackVersion
+    val slf4j = "org.slf4j" % "slf4j-api" % "1.6.4"
+    val loggingDeps = Seq(slf4j, logbackCore, logbackClassic)
+
+    val scalazVersion = "7.1.0"
+    val scalaz = "org.scalaz" %% "scalaz-core" % scalazVersion
+    val scalazStream = "org.scalaz.stream" %% "scalaz-stream" % "0.5a"
+    val scalazScalacheck = "org.scalaz" %% "scalaz-scalacheck-binding" % scalazVersion % "test"
+    val scalazDeps = Seq(scalaz, scalazStream, scalazScalacheck)
+
+  }
 }
