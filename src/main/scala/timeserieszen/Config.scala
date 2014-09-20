@@ -20,6 +20,11 @@ object Config {
     lazy val blockSize = cfg.getInt("wal_block_size")
   }
 
+  object Storage extends Subconfig(config, "storage") {
+    lazy val data_path = cfg.getDirectory("data_path")
+    lazy val staging_path = cfg.getDirectory("staging_path")
+  }
+
   implicit class CfgWrapper(val cfg: Config) extends AnyVal {
     def getDirectory(nm: String) = ensureDirExists(cfg.getString(nm))
   }
