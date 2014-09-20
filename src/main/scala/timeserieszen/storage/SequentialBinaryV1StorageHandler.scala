@@ -5,6 +5,8 @@ import java.nio.ByteBuffer
 import java.util.UUID
 import com.timeserieszen.Utils
 
+class SequentialBinaryV1Storage(dataDir: File, stagingDir: File) extends SeriesStorageFromAtomic(dataDir, stagingDir, SequentialBinaryV1StorageHandler)
+
 private object SequentialBinaryV1StorageHandler extends AtomicStorageHandler {
   final val VERSION_TAG: Long = 1 //NEVER CHANGE THIS, NEVER BUILD ANOTHER ATOMICSTORAGEHANDLER WITH THE SAME FORMAT TAG
 
