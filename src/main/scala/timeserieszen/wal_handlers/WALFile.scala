@@ -5,7 +5,7 @@ import com.timeserieszen.monitoring._
 import java.io._
 import scalaz.stream.async.mutable.Queue
 
-private class WALFile(waldir: File, rotateSize: Long=1024*256, prefix: String = "", notifyQueue: Option[Queue[File]] = None) extends Logging {
+private class WALFile(waldir: File, rotateSize: Long=1024*256, prefix: String = "", notifyQueue: Option[Queue[File]] = None) extends Logging with Metrics {
   def this(fn: String) = this(new File(fn))
   log.info("Logging WAL files to {}", waldir)
 
@@ -19,6 +19,10 @@ private class WALFile(waldir: File, rotateSize: Long=1024*256, prefix: String = 
   def numRotations = rotations
 
   def closed = isClosed
+
+  //Metrics
+  protected val metricPrefix: String = "wal_handler"
+  private val rotationCounter = counter("rotations")
 
   var numEnqueued = 0
   private def closeFile = if (filewriter != null) {
@@ -52,6 +56,7 @@ private class WALFile(waldir: File, rotateSize: Long=1024*256, prefix: String = 
       fileSize = 0
       rotations += 1
       log.info("Rotated old WAL file {}, new WAL file is {}", Seq(oldfile, outputFile): _*)
+      rotationCounter.inc()
     } else {
       throw new java.io.IOException("Writer is closed")
     }
