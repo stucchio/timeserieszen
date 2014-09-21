@@ -62,4 +62,19 @@ object TextWALHandlerSpec extends Properties("TextWALHandler") {
     })
   })
 
+  property("series are published to the topic") = forAllNoShrink(arbitrary[Seq[DataPoint[Double]]])((m: Seq[DataPoint[Double]]) => {
+    if (m.size > 0) {
+      withTempDir(f => {
+        val wal = new TextWALHandler(f, queueSize=0)
+        val result = new WaitFor[Seq[DataPoint[Double]]]
+        wal.topic.subscribe.runLog.runAsync( _.fold(_ => ???, x => {result.put(x)}) )
+        Process.emitAll(m).to(wal.writer).run.run
+
+        result() == m
+      })
+    } else { //Nothing will be written for no data coming in
+      true
+    }
+  })
+
 }

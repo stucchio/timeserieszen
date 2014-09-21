@@ -14,4 +14,5 @@ trait WALHandler[T] {
   def writer: Sink[Task,DataPoint[T]]
   def flushedSeries: Process[Task,WALHandler.FileRemover \/ Series[T]]
   def reader: Process[Task,DataPoint[T]]
+  def topic: async.mutable.Topic[DataPoint[T]]
 }

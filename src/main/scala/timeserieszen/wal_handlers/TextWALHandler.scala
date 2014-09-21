@@ -22,8 +22,16 @@ case class TextWALHandler(waldir: java.io.File, rotateSize: Long = 1024*256, pre
   require(queueSize >= 0, "Queue size cannot be negative.")
 
   val writer = io.resource[WALFile,DataPoint[Double] => Task[Unit]](Task.delay { new WALFile(waldir, rotateSize, prefix, Some(queue)) }
-      )( (f:WALFile) => Task.delay { f.close() }
-      )( (f:WALFile) => Task.now {(d:DataPoint[Double]) => Task.delay { f.write(Utils.datapointToString(d)) } })
+      )( (f:WALFile) => Task.delay {
+        f.close()
+        topic.close.run
+      }
+      )( (f:WALFile) => Task.now {(d:DataPoint[Double]) => Task.delay {
+        f.write(Utils.datapointToString(d))
+        topic.publishOne( d ).run // publish to the topic after flush.
+      } })
+
+  val topic = async.topic[DataPoint[Double]]()
 
   def reader = {
     Process.emitAll(waldir.list().toSeq.sorted).flatMap( fn => {
