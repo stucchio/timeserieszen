@@ -16,12 +16,21 @@ object TestHelpers {
     } yield (f(a))
   }
 
+  private def deleteRecursive(f: java.io.File): Unit = {
+    if (f.isDirectory()) {
+      f.listFiles().foreach( deleteRecursive _)
+      f.delete()
+    } else {
+      f.delete()
+    }
+  }
+
   def withTempDir[T](f:java.io.File => T) = {
     val file = java.nio.file.Files.createTempDirectory("test_text_wal_handler").toFile()
     try {
       f(file)
     } finally {
-      file.delete()
+      deleteRecursive(file)
     }
   }
 
