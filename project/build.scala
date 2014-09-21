@@ -13,11 +13,7 @@ object ApplicationBuild extends Build {
     resolvers ++= myResolvers,
     name := "timeserieszen",
     //fork := true,
-    libraryDependencies ++= Dependencies.scalazDeps ++ Dependencies.loggingDeps ++ Seq(
-      "joda-time" % "joda-time" % "2.4",
-      "com.typesafe" % "config" % "1.2.1",
-      "org.scalacheck" %% "scalacheck" % "1.11.3" % "test"
-    ),
+    libraryDependencies ++= Dependencies.scalazDeps ++ Dependencies.loggingDeps ++ Dependencies.miscDeps ++ Dependencies.testDeps,
     publishTo := Some(Resolver.file("file",  new File( "/tmp/injera-publish" )) )
   )
 
@@ -42,8 +38,15 @@ object ApplicationBuild extends Build {
     val scalazVersion = "7.1.0"
     val scalaz = "org.scalaz" %% "scalaz-core" % scalazVersion
     val scalazStream = "org.scalaz.stream" %% "scalaz-stream" % "0.5a"
-    val scalazScalacheck = "org.scalaz" %% "scalaz-scalacheck-binding" % scalazVersion % "test"
-    val scalazDeps = Seq(scalaz, scalazStream, scalazScalacheck)
+    val scalazDeps = Seq(scalaz, scalazStream)
 
+    val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.11.3" % "test"
+    val scalazScalacheck = "org.scalaz" %% "scalaz-scalacheck-binding" % scalazVersion % "test"
+    val testDeps = Seq(scalaCheck, scalazScalacheck)
+
+    val guava = "com.google.guava" % "guava" % "14.0"
+    val joda = "joda-time" % "joda-time" % "2.4"
+    val config = "com.typesafe" % "config" % "1.2.1"
+    val miscDeps = Seq(guava, joda, config)
   }
 }
