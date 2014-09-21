@@ -41,4 +41,23 @@ object TestHelpers {
     _ = scala.util.Sorting.quickSort(times)
     values <- Gen.containerOfN[Array,Double](numVals, arbitrary[Double])
   } yield (times, values)
+
+  class WaitFor[T] {
+    private val semaphore = new java.util.concurrent.Semaphore(1)
+    semaphore.acquire()
+    private var o: Option[T] = None
+    def put(x: T) = {
+      o = Some(x)
+      semaphore.release()
+    }
+    def apply(): T = {
+      //Block until result is returned.
+      semaphore.acquire()
+      try {
+        o.get
+      } finally {
+        semaphore.release()
+      }
+    }
+  }
 }
