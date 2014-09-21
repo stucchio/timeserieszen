@@ -1,6 +1,6 @@
 package com.timeserieszen.wal_handlers
 
-import com.timeserieszen.Logging
+import com.timeserieszen.monitoring._
 
 import java.io._
 import scalaz.stream.async.mutable.Queue

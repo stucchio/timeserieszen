@@ -1,4 +1,7 @@
 package com.timeserieszen
+
+import com.timeserieszen.monitoring.Logging
+
 import com.typesafe.config._
 
 class Subconfig(config: Config, name: String) {
@@ -25,7 +28,11 @@ object Config extends Logging {
     lazy val staging_path = cfg.getDirectory("staging_path")
   }
 
-  implicit class CfgWrapper(val cfg: Config) extends AnyVal {
+  object Monitoring extends Subconfig(config, "monitoring") {
+    lazy val metrics_prefix = cfg.getString("metrics_prefix")
+  }
+
+  private implicit class CfgWrapper(val cfg: Config) extends AnyVal {
     def getDirectory(nm: String) = ensureDirExists(cfg.getString(nm))
   }
 

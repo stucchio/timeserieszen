@@ -33,7 +33,11 @@ object ApplicationBuild extends Build {
     val logbackClassic = "ch.qos.logback" % "logback-classic" % logbackVersion
     val logbackCore = "ch.qos.logback" % "logback-core" % logbackVersion
     val slf4j = "org.slf4j" % "slf4j-api" % "1.6.4"
-    val loggingDeps = Seq(slf4j, logbackCore, logbackClassic)
+
+    val metricsVersion = "3.1.0"
+    val codahaleMetricsBase = "io.dropwizard.metrics" % "metrics-core" % metricsVersion
+    val codahaleMetricsGraphite = "io.dropwizard.metrics" % "metrics-graphite" % metricsVersion
+    val loggingDeps = Seq(slf4j, logbackCore, logbackClassic, codahaleMetricsBase, codahaleMetricsGraphite)
 
     val scalazVersion = "7.1.0"
     val scalaz = "org.scalaz" %% "scalaz-core" % scalazVersion

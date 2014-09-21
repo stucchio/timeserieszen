@@ -1,6 +1,7 @@
 package com.timeserieszen.wal_handlers
 
 import com.timeserieszen._
+import com.timeserieszen.monitoring._
 
 import scalaz._
 import Scalaz._

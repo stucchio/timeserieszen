@@ -1,11 +1,5 @@
 package com.timeserieszen
 
-import org.slf4j.{Logger, LoggerFactory}
-
-trait Logging {
-  protected lazy val log = LoggerFactory.getLogger(this.getClass)
-}
-
 private object Utils {
   def datapointToString(d: DataPoint[Double]): String = {
     val sb = new StringBuilder()

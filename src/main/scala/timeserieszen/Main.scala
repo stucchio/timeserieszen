@@ -1,12 +1,13 @@
 package com.timeserieszen
 
 import com.timeserieszen.listener._
+import com.timeserieszen.monitoring._
 import com.timeserieszen.wal_handlers._
 import com.timeserieszen.storage._
 
 import scalaz.concurrent._
 
-object Main extends Logging{
+object Main extends Logging {
 
   def main(args: Array[String]) {
     log.info("Starting timeserieszen server")
