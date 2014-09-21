@@ -58,14 +58,3 @@ case class FlatDataPoint[T](timestamp: Long, identifiers: Seq[SeriesIdent], valu
   lazy val data = identifiers.zip(values).toMap
   def numSeries = identifiers.size
 }
-
-
-object WALHandler {
-  type FileRemover = (() => Unit)
-}
-
-trait WALHandler[T] {
-  def writer: Sink[Task,DataPoint[T]]
-  def flushedSeries: Process[Task,WALHandler.FileRemover \/ Series[T]]
-  def reader: Process[Task,DataPoint[T]]
-}
