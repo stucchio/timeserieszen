@@ -11,7 +11,7 @@ import scalaz.stream.async.mutable.Queue
 import scala.collection.mutable.{HashMap, ArrayBuffer}
 import java.io._
 
-case class TextWALHandler(waldir: java.io.File, rotateSize: Long = 1024*256, prefix: String = "", queueSize: Int = 0) extends WALHandler[Double] with Logging with Metrics {
+case class TextWALHandler(waldir: java.io.File, override val rotateSize: Long = 1024*256, override val walPrefix: String = "", queueSize: Int = 0) extends WALHandler[Double] with Logging with Metrics with WALFile {
   /**
     * rotateSize - when the size of a WAL file *approximately* exceeds this, the log will be rotated.
     *  prefix    - prefix the WAL files with this
@@ -28,7 +28,9 @@ case class TextWALHandler(waldir: java.io.File, rotateSize: Long = 1024*256, pre
   protected val metricPrefix: String = "text_wal_handler"
   private val dataPoints = counter("datapoints")
 
-  val writer = io.resource[WALFile,DataPoint[Double] => Task[Unit]](Task.delay { new WALFile(waldir, rotateSize, prefix, Some(queue)) }
+
+
+  val writer = io.resource[WALFile,DataPoint[Double] => Task[Unit]](Task.delay { this }
       )( (f:WALFile) => Task.delay {
         f.close()
         topic.close.run
@@ -50,6 +52,7 @@ case class TextWALHandler(waldir: java.io.File, rotateSize: Long = 1024*256, pre
   }
 
   private val queue = async.boundedQueue[File](queueSize)
+  override protected val notifyQueue = Some(queue)
 
   import WALHandler._
 

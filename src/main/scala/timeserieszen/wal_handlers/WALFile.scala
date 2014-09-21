@@ -5,11 +5,15 @@ import com.timeserieszen.monitoring._
 import java.io._
 import scalaz.stream.async.mutable.Queue
 
-private class WALFile(waldir: File, rotateSize: Long=1024*256, prefix: String = "", notifyQueue: Option[Queue[File]] = None) extends Logging with Metrics {
-  def this(fn: String) = this(new File(fn))
-  log.info("Logging WAL files to {}", waldir)
+trait WALFile extends Logging with Metrics {
+  protected val waldir: File
+  protected val rotateSize: Long=1024*256
+  protected val walPrefix: String = ""
+  protected val notifyQueue: Option[Queue[File]] = None
 
   require(waldir.isDirectory(), "You must point to a directory of WAL files.")
+
+  log.info("Logging WAL files to {}", waldir)
 
   private var isClosed: Boolean = false
   private var outputFile: File = _
@@ -20,8 +24,6 @@ private class WALFile(waldir: File, rotateSize: Long=1024*256, prefix: String = 
 
   def closed = isClosed
 
-  //Metrics
-  protected val metricPrefix: String = "wal_handler"
   private val rotationCounter = counter("rotations")
 
   var numEnqueued = 0
@@ -51,7 +53,7 @@ private class WALFile(waldir: File, rotateSize: Long=1024*256, prefix: String = 
     closeFile
     if (!isClosed) {
       val oldfile = outputFile
-      outputFile = new File(waldir, prefix + lpadNum(System.currentTimeMillis, 22) + "_" + lpadNum(rotations,8) + ".dat")
+      outputFile = new File(waldir, walPrefix + lpadNum(System.currentTimeMillis, 22) + "_" + lpadNum(rotations,8) + ".dat")
       filewriter = new FileWriter(outputFile)
       fileSize = 0
       rotations += 1
