@@ -17,13 +17,16 @@ object Metrics {
     override def meter(name: String) = super.meter(Config.Monitoring.metrics_prefix + "." + name)
     override def timer(name: String) = super.timer(Config.Monitoring.metrics_prefix + "." + name)
   }
+
+  val reporter = ConsoleReporter.forRegistry(registry).convertRatesTo(TimeUnit.SECONDS).convertDurationsTo(TimeUnit.MILLISECONDS).build();
+  reporter.start(1, TimeUnit.SECONDS);
 }
 
 trait Metrics {
-  protected def prefix: String
+  protected def metricPrefix: String
 
-  protected def counter(name: String) = Metrics.registry.counter(Config.Monitoring.metrics_prefix + "." + prefix + "." + name)
-  protected def histogram(name: String) = Metrics.registry.histogram(Config.Monitoring.metrics_prefix + "." + prefix + "." + name)
-  protected def meter(name: String) = Metrics.registry.meter(Config.Monitoring.metrics_prefix + "." + prefix + "." + name)
-  protected def timer(name: String) = Metrics.registry.timer(Config.Monitoring.metrics_prefix + "." + prefix + "." + name)
+  protected def counter(name: String) = Metrics.registry.counter(metricPrefix + "." + name)
+  protected def histogram(name: String) = Metrics.registry.histogram(metricPrefix + "." + name)
+  protected def meter(name: String) = Metrics.registry.meter(metricPrefix + "." + name)
+  protected def timer(name: String) = Metrics.registry.timer(metricPrefix + "." + name)
 }
