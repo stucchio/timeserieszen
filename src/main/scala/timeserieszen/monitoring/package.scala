@@ -18,8 +18,10 @@ object Metrics {
     override def timer(name: String) = super.timer(Config.Monitoring.metrics_prefix + "." + name)
   }
 
+  /* FOR DEBUG ONLY
   val reporter = ConsoleReporter.forRegistry(registry).convertRatesTo(TimeUnit.SECONDS).convertDurationsTo(TimeUnit.MILLISECONDS).build();
   reporter.start(1, TimeUnit.SECONDS);
+   */
 }
 
 trait Metrics {
