@@ -1,10 +1,13 @@
 package com.timeserieszen.wal_handlers
 
+import com.timeserieszen.Logging
+
 import java.io._
 import scalaz.stream.async.mutable.Queue
 
-private class WALFile(waldir: File, rotateSize: Long=1024*256, prefix: String = "", notifyQueue: Option[Queue[File]] = None) {
+private class WALFile(waldir: File, rotateSize: Long=1024*256, prefix: String = "", notifyQueue: Option[Queue[File]] = None) extends Logging {
   def this(fn: String) = this(new File(fn))
+  log.info("Logging WAL files to {}", waldir)
 
   require(waldir.isDirectory(), "You must point to a directory of WAL files.")
 
@@ -43,10 +46,12 @@ private class WALFile(waldir: File, rotateSize: Long=1024*256, prefix: String = 
   private def rotate = {
     closeFile
     if (!isClosed) {
+      val oldfile = outputFile
       outputFile = new File(waldir, prefix + lpadNum(System.currentTimeMillis, 22) + "_" + lpadNum(rotations,8) + ".dat")
       filewriter = new FileWriter(outputFile)
       fileSize = 0
       rotations += 1
+      log.info("Rotated old WAL file {}, new WAL file is {}", Seq(oldfile, outputFile): _*)
     } else {
       throw new java.io.IOException("Writer is closed")
     }

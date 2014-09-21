@@ -5,7 +5,7 @@ class Subconfig(config: Config, name: String) {
   protected lazy val cfg = config.getConfig(name)
 }
 
-object Config {
+object Config extends Logging {
   private lazy val config = ConfigFactory.load()
 
   lazy val ensure_directories_exist = config.getBoolean("ensure_directories_exist")
@@ -39,6 +39,7 @@ object Config {
       case (true, true, true)  => dir
       case (true, false, false) => {
         if (dir.mkdirs()) {
+          log.info("Directory {} does not exist, creating", dir)
           dir
         } else {
           throw new java.io.IOException("Unable to create directory " + dir)
