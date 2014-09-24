@@ -11,6 +11,7 @@ import scalacheck.ScalazProperties._
 import Arbitrary.arbitrary
 import Prop._
 import TestHelpers._
+import org.scalacheck.Prop.BooleanOperators
 
 object TextWALHandlerSpec extends Properties("TextWALHandler") {
   property("to and from file") = forAllNoShrink(arbitrary[Seq[DataPoint[Double]]])((m: Seq[DataPoint[Double]]) => {
@@ -22,9 +23,9 @@ object TextWALHandlerSpec extends Properties("TextWALHandler") {
         Process.emitAll(m).to(wal.writer).run.run
         //Read from file
         val result = wal.reader.runLog.run
-        result == m
+        (result == m) :| "Datapoint written != datapoint read"
       } else { //Nothing will be written for no data coming in
-        true
+        true :| "vacuous"
       }
     })
   })
@@ -38,9 +39,9 @@ object TextWALHandlerSpec extends Properties("TextWALHandler") {
         Process.emitAll(m).to(wal.writer).run.run
         //Read from file
         val result = wal.reader.runLog.run
-        result == m
+        (result == m) :| "Datapoint written != datapoint read"
       } else { //Nothing will be written for no data coming in
-        true
+        true :| "vacuous"
       }
     })
   })
@@ -55,9 +56,9 @@ object TextWALHandlerSpec extends Properties("TextWALHandler") {
         val fromSyncedSeries = wal.flushedSeries.runLog.run
         val originalIdents = Set(m.flatMap( _.data.keys ): _*)
         val flushedIdents = fromSyncedSeries.flatMap( _.fold(_ => None, x => Some(x.ident)) ).toSet
-        flushedIdents == originalIdents
+        (flushedIdents == originalIdents) :| "Datapoint written != datapoint read"
       } else { //Nothing will be written for no data coming in
-        true
+        true :| "vacuous"
       }
     })
   })
@@ -70,10 +71,10 @@ object TextWALHandlerSpec extends Properties("TextWALHandler") {
         wal.topic.subscribe.runLog.runAsync( _.fold(_ => ???, x => {result.put(x)}) )
         Process.emitAll(m).to(wal.writer).run.run
 
-        result() == m
+        (result() == m) :| "Datapoint written != datapoint read"
       })
     } else { //Nothing will be written for no data coming in
-      true
+      true :| "vacuous"
     }
   })
 

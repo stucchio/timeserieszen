@@ -26,7 +26,7 @@ object TestHelpers {
   }
 
   def withTempDir[T](f:java.io.File => T) = {
-    val file = java.nio.file.Files.createTempDirectory("test_text_wal_handler").toFile()
+    val file = java.nio.file.Files.createTempDirectory("tszen_test_").toFile()
     try {
       f(file)
     } finally {
