@@ -6,17 +6,17 @@ import com.timeserieszen.Utils
 
 private trait AtomicStorageHandler {
   // Returns sequence of timestamps, data points
-  def read(f: File): (Array[Long], Array[Double])
+  protected def readFile(f: File): (Array[Long], Array[Double])
 
   // This function returns the first and last datapoints stored in a file.
   // This should be overridden if the storage scheme allows it.
   protected def minMax(f: File): (Long, Long) = {
-    val ts = read(f)._1
+    val ts = readFile(f)._1
     (ts.min, ts.max)
   }
 
   //Appends a sequence of times, values to the file
-  protected def append(o: RandomAccessFile, times: Seq[Long], values: Seq[Double]): Unit
+  protected def appendToFile(o: RandomAccessFile, times: Seq[Long], values: Seq[Double]): Unit
 
   //Write headers to a new file
   protected def writeHeaders(o: RandomAccessFile, times: Seq[Long], values: Seq[Double]): Unit
@@ -27,7 +27,7 @@ private trait AtomicStorageHandler {
       val (t, v) = (times.toArray, values.toArray)
       Utils.sortSeries(t,v)
       writeHeaders(o, t, v)
-      append(o, t, v)
+      appendToFile(o, t, v)
     })
     newFile.renameTo(destination) //Atomic write
   }
@@ -41,7 +41,7 @@ private trait AtomicStorageHandler {
     }
   }
 
-  def write(f: File, stagingDir: File, times: Seq[Long], values: Seq[Double]): Unit = {
+  protected def writeToFile(f: File, stagingDir: File, times: Seq[Long], values: Seq[Double]): Unit = {
     /* This method and read are the public interface of this method.
      *
      */
@@ -55,10 +55,10 @@ private trait AtomicStorageHandler {
       if (minNew > maxFile) { //This is an easy append
         withFile(f)(o => {
           writeHeaders(o, times, values)
-          append(o, times, values)
+          appendToFile(o, times, values)
         })
       } else { //The file requires rewriting
-        val (oldTimes, oldValues) = read(f)
+        val (oldTimes, oldValues) = readFile(f)
         create(f, stagingDir, oldTimes ++ times, oldValues ++ values)
       }
     } else {

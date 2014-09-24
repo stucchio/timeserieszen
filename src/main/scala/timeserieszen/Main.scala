@@ -15,7 +15,7 @@ object Main extends Logging {
     val walWriter = TextWALHandler(Config.WAL.path, rotateSize=Config.WAL.blockSize)
     Task.fork( inputStream.to(walWriter.writer).run ).runAsync(_ => ())
     log.info("Created wal listener")
-    val storageWriter = new SequentialBinaryV1Storage(Config.Storage.data_path, Config.Storage.staging_path)
+    val storageWriter = SequentialBinaryV1Storage(Config.Storage.data_path, Config.Storage.staging_path)
     walWriter.flushedSeries.to(storageWriter.sink).run.run
     log.info("Created storage writer")
   }

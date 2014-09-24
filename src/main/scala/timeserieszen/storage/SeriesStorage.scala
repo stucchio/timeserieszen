@@ -21,17 +21,17 @@ trait SeriesStorage[T] {
 
 }
 
-class SeriesStorageFromAtomic(dataDir: File, stagingDir: File, atomicStore: AtomicStorageHandler) extends SeriesStorage[Double] with Logging {
+private abstract class SeriesStorageFromAtomic(dataDir: File, stagingDir: File) extends SeriesStorage[Double] with AtomicStorageHandler with Logging {
   log.info("Created {} with datadir {} and stagingdir {}", this.getClass, dataDir, stagingDir)
 
   private def identToFilename(si: SeriesIdent): java.io.File = new File(dataDir, si.name + ".dat")
 
-  def write(series: Series[Double]): Unit = atomicStore.write(identToFilename(series.ident), stagingDir, series.times, series.values)
-  def append(series: Series[Double]): Unit = atomicStore.write(identToFilename(series.ident), stagingDir, series.times, series.values)
+  def write(series: Series[Double]): Unit = writeToFile(identToFilename(series.ident), stagingDir, series.times, series.values)
+  def append(series: Series[Double]): Unit = writeToFile(identToFilename(series.ident), stagingDir, series.times, series.values)
   def read(ident: SeriesIdent): Option[Series[Double]] = {
     val f = identToFilename(ident)
     if (f.exists()) {
-      val data = atomicStore.read(f)
+      val data = readFile(f)
       Some(BufferedSeries(ident, data._1, data._2))
     } else {
       None

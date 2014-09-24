@@ -5,12 +5,16 @@ import java.nio.ByteBuffer
 import java.util.UUID
 import com.timeserieszen.Utils
 
-class SequentialBinaryV1Storage(dataDir: File, stagingDir: File) extends SeriesStorageFromAtomic(dataDir, stagingDir, SequentialBinaryV1StorageHandler)
+object SequentialBinaryV1Storage {
+  def apply(dataDir: File, stagingDir: File): SeriesStorage[Double] = new SequentialBinaryV1Storage(dataDir, stagingDir)
+}
 
-private object SequentialBinaryV1StorageHandler extends AtomicStorageHandler {
+private[storage] class SequentialBinaryV1Storage(dataDir: File, stagingDir: File) extends SeriesStorageFromAtomic(dataDir, stagingDir) with SequentialBinaryV1StorageHandler
+
+private[storage] trait SequentialBinaryV1StorageHandler extends AtomicStorageHandler {
   final val VERSION_TAG: Long = 1 //NEVER CHANGE THIS, NEVER BUILD ANOTHER ATOMICSTORAGEHANDLER WITH THE SAME FORMAT TAG
 
-  def read(f: File): (Array[Long], Array[Double]) = {
+  protected def readFile(f: File): (Array[Long], Array[Double]) = {
     withFile(f)(input => {
       val fileLength = input.length()
       val versionTag = input.readLong()
@@ -46,7 +50,7 @@ private object SequentialBinaryV1StorageHandler extends AtomicStorageHandler {
     o.writeLong(times(times.size-1))
   }
 
-  protected def append(o: java.io.RandomAccessFile, times: Seq[Long],values: Seq[Double]): Unit = {
+  protected def appendToFile(o: java.io.RandomAccessFile, times: Seq[Long],values: Seq[Double]): Unit = {
     require(times.size == values.size, "Times and values must be same size")
     val length = o.length()
     o.seek(length)

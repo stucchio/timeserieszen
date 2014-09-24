@@ -10,43 +10,53 @@ import scalaz._
 import Scalaz._
 import scalaz.stream._
 import scalacheck.ScalazProperties._
+import org.scalacheck.Prop.BooleanOperators
 import Arbitrary.arbitrary
 import Prop._
 import TestHelpers._
 
 object SequentialBinaryV1StorageHandlerSpec extends Properties("SequentialBinaryV1StorageHandler") {
+  private def mkdirs(f: File): (File, File) = {
+    val stagingDir = new File(f, "staging")
+    stagingDir.mkdir()
+    val dataDir = new File(f, "data")
+    dataDir.mkdir()
+    (stagingDir, dataDir)
+  }
+
   property("to and from file") = forAllNoShrink(genArrayForSeries)( data => {
     withTempDir(f => {
-      val stagingDir = new File(f, "staging")
-      stagingDir.mkdir()
-      val dataDir = new File(f, "data")
-      dataDir.mkdir()
-      val dataFile = new File(dataDir, UUID.randomUUID().toString + ".dat")
-      SequentialBinaryV1StorageHandler.write(dataFile, stagingDir, data._1, data._2)
-      val (inTimes, inValues) = SequentialBinaryV1StorageHandler.read(dataFile)
-      require(data._1.toSeq == inTimes.toSeq, "times do not match")
-      require(data._2.toSeq == inValues.toSeq, "values do not match")
-      true
+      val (stagingDir, dataDir) = mkdirs(f)
+      val s = SequentialBinaryV1Storage(dataDir, stagingDir)
+      val id = SeriesIdent(UUID.randomUUID().toString)
+      val oldSeries = BufferedSeries(id, data._1, data._2)
+      s.write(oldSeries)
+      val newSeries = s.read(id).get
+      ((oldSeries.ident == newSeries.ident) :| "identities do not match") &&
+      ((oldSeries.data == newSeries.data) :| "data series do not match")
     })
   })
   property("to and from file + append, no rewrite") = forAllNoShrink(genArrayForSeries)( data => {
     withTempDir(f => {
-      val stagingDir = new File(f, "staging")
-      stagingDir.mkdir()
-      val dataDir = new File(f, "data")
-      dataDir.mkdir()
-      val dataFile = new File(dataDir, UUID.randomUUID().toString + ".dat")
+      val (stagingDir, dataDir) = mkdirs(f)
+
+      val s = SequentialBinaryV1Storage(dataDir, stagingDir)
+      val id = SeriesIdent(UUID.randomUUID().toString)
 
       val N = data._1.size
       val cutPoint = data._1.size/2
       val (firstTimes, firstValues) = (data._1.slice(0,cutPoint), data._2.slice(0,cutPoint))
       val (lastTimes, lastValues) = (data._1.slice(cutPoint,N), data._2.slice(cutPoint, N))
-      SequentialBinaryV1StorageHandler.write(dataFile, stagingDir, firstTimes, firstValues)
-      SequentialBinaryV1StorageHandler.write(dataFile, stagingDir, lastTimes, lastValues)
-      val (inTimes, inValues) = SequentialBinaryV1StorageHandler.read(dataFile)
-      require(data._1.toSeq == inTimes.toSeq, "times do not match")
-      require(data._2.toSeq == inValues.toSeq, "values do not match")
-      true
+      val oldSeries = BufferedSeries(id, data._1, data._2)
+      val oldSeries1 = BufferedSeries(id, firstTimes, firstValues)
+      val oldSeries2 = BufferedSeries(id, lastTimes, lastValues)
+      s.write(oldSeries1)
+      s.write(oldSeries2)
+
+      val newSeries = s.read(id).get
+
+      ((oldSeries.ident == newSeries.ident) :| "identities do not match") &&
+      ((oldSeries.data == newSeries.data) :| "data series do not match")
     })
   })
   property("to and from file + append, with rewrite") = forAllNoShrink(for {
@@ -54,11 +64,10 @@ object SequentialBinaryV1StorageHandlerSpec extends Properties("SequentialBinary
     y <- genArrayForSeries
   } yield (x,y))( data2 => {
     withTempDir(f => {
-      val stagingDir = new File(f, "staging")
-      stagingDir.mkdir()
-      val dataDir = new File(f, "data")
-      dataDir.mkdir()
-      val dataFile = new File(dataDir, UUID.randomUUID().toString + ".dat")
+      val (stagingDir, dataDir) = mkdirs(f)
+      val s = SequentialBinaryV1Storage(dataDir, stagingDir)
+
+      val id = SeriesIdent(UUID.randomUUID().toString)
 
       val (t1, v1) = data2._1
       val (t2, v2) = data2._2
@@ -75,13 +84,14 @@ object SequentialBinaryV1StorageHandlerSpec extends Properties("SequentialBinary
       val (t, v) = ((t1 ++ t2).toArray, (v1 ++ v2).toArray)
       Utils.sortSeries(t,v)
 
-      SequentialBinaryV1StorageHandler.write(dataFile, stagingDir, t1, v1)
-      SequentialBinaryV1StorageHandler.write(dataFile, stagingDir, t2, v2)
-      val (inTimes, inValues) = SequentialBinaryV1StorageHandler.read(dataFile)
+      s.write(BufferedSeries(id, t1, v1))
+      s.write(BufferedSeries(id, t2, v2))
 
-      require(t.toSeq == inTimes.toSeq, "times do not match")
-      require(v.toSeq == inValues.toSeq, "values do not match")
-      true
+      val oldSeries = BufferedSeries(id, t, v)
+      val newSeries = s.read(id).get
+
+      ((oldSeries.ident == newSeries.ident) :| "identities do not match") &&
+      ((oldSeries.data == newSeries.data) :| "data series do not match")
     })
   })
 }
