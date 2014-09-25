@@ -1,5 +1,7 @@
 package com.timeserieszen
 
+import scala.reflect.ClassTag
+
 private object Utils {
   def datapointToString(d: DataPoint[Double]): String = {
     val sb = new StringBuilder()
@@ -138,5 +140,44 @@ private object Utils {
       }
     }
     sort2(off, len)
+  }
+
+  def stripDuplicates[T](x: Array[Long], y: Array[T])(implicit m: ClassTag[T]): (Array[Long], Array[T]) = {
+    //Precondition: x is assumed sorted.
+    require(x.length == y.length, "Arrays have two different lengths")
+    if (x.length <= 1) {
+      (x,y)
+    } else {
+      var dupeCount = 0
+      var i=1
+      var lastTime: Long = x(0)
+      while (i < x.size) {
+        if (x(i) == lastTime) {
+          dupeCount += 1
+        }
+        lastTime = x(i)
+        i += 1
+      }
+      if (dupeCount == 0) {
+        (x,y)
+      } else {
+        val t = new Array[Long](x.size-dupeCount)
+        val v = new Array[T](x.size-dupeCount)
+
+        lastTime = x(0) - 1
+        i=0
+        var j = 0
+        while (i < x.size) {
+          if (x(i) != lastTime) {
+            t(j) = x(i)
+            v(j) = y(i)
+            j += 1
+          }
+          lastTime = x(i)
+          i += 1
+        }
+        (t,v)
+      }
+    }
   }
 }

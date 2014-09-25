@@ -4,6 +4,7 @@ import scalaz._
 import scalaz.stream._
 import scalaz.concurrent._
 import org.joda.time.DateTime
+import scala.reflect.ClassTag
 
 case class SeriesIdent(name: String) extends AnyVal
 
@@ -13,9 +14,26 @@ sealed trait Series[T] {
   def times: Seq[Long] = data.map(_._1)
   def values: Seq[T] = data.map(_._2)
   def length = data.size
+  implicit protected def ct: ClassTag[T]
+
+  def merge(other: Series[T]): Series[T] = {
+    require(ident == other.ident, "Can only merge with other series")
+    val t = new Array[Long](length+other.length)
+    val v = new Array[T](length+other.length)
+    var i=0
+    times.foreach(x => { t(i) = x; i += 1 })
+    i = 0
+    values.foreach(x => { v(i) = x; i += 1 })
+    val start2 = i
+    other.times.foreach(x => { t(i) = x; i += 1 })
+    i = start2
+    other.values.foreach(x => { v(i) = x; i += 1 })
+    val (newT, newV) = Utils.stripDuplicates(t,v)
+    BufferedSeries(ident, newT, newV)
+  }
 }
 
-case class BufferedSeries[T](ident: SeriesIdent, timesA: Array[Long], valuesA: Array[T]) extends Series[T] {
+case class BufferedSeries[T](ident: SeriesIdent, timesA: Array[Long], valuesA: Array[T])(implicit protected val ct: ClassTag[T]) extends Series[T] {
   require(timesA.size == valuesA.size)
   require(timesA.size > 0)
   override val times = timesA.toSeq
@@ -31,7 +49,7 @@ case class BufferedSeries[T](ident: SeriesIdent, timesA: Array[Long], valuesA: A
   }
 }
 
-case class BoxedSeries[T](ident: SeriesIdent, data: Seq[(Long,T)]) extends Series[T]
+case class BoxedSeries[T](ident: SeriesIdent, data: Seq[(Long,T)])(implicit protected val ct: ClassTag[T]) extends Series[T]
 
 sealed trait DataPoint[T] {
   def timestamp: Long //UTC time, java style
