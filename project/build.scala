@@ -13,7 +13,7 @@ object ApplicationBuild extends Build {
     resolvers ++= myResolvers,
     name := "timeserieszen",
     //fork := true,
-    libraryDependencies ++= Dependencies.scalazDeps ++ Dependencies.loggingDeps ++ Dependencies.miscDeps ++ Dependencies.testDeps,
+    libraryDependencies ++= Dependencies.scalazDeps ++ Dependencies.loggingDeps ++ Dependencies.miscDeps ++ Dependencies.http4sDeps ++ Dependencies.testDeps,
     publishTo := Some(Resolver.file("file",  new File( "/tmp/injera-publish" )) )
   )
 
@@ -43,6 +43,20 @@ object ApplicationBuild extends Build {
     val scalaz = "org.scalaz" %% "scalaz-core" % scalazVersion
     val scalazStream = "org.scalaz.stream" %% "scalaz-stream" % "0.5a"
     val scalazDeps = Seq(scalaz, scalazStream)
+
+
+    val http4sVersion = "0.4.0-SNAPSHOT"
+    val json4sCorerevision = "3.2.10"
+    val http4sCore  = "org.http4s" %% "http4s-core"      % http4sVersion
+    val http4sServer  = "org.http4s" %% "http4s-server"    % http4sVersion
+    val http4sDSL   = "org.http4s" %% "http4s-dsl"         % http4sVersion
+    val http4sBlaze = "org.http4s" %% "http4s-blazeserver" % http4sVersion
+    val http4sJetty = "org.http4s" %% "http4s-servlet"     % http4sVersion
+    val json4sCore          = "org.json4s"               %% "json4s-core"             % "3.2.10"
+    val json4sJackson       = "org.json4s"               %% "json4s-jackson"          % json4sCorerevision
+    val json4sNative        = "org.json4s"               %% "json4s-native"           % json4sCorerevision
+
+    val http4sDeps = Seq(http4sCore, http4sServer, http4sServer, http4sDSL, http4sBlaze, http4sJetty, json4sCore, json4sJackson, json4sNative)
 
     val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.11.3" % "test"
     val scalazScalacheck = "org.scalaz" %% "scalaz-scalacheck-binding" % scalazVersion % "test"
