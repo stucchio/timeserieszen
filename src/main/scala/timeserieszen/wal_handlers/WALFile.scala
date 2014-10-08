@@ -16,9 +16,8 @@ trait WALFile extends Logging with Metrics {
   log.info("Logging WAL files to {}", waldir)
 
   private var isClosed: Boolean = false
-  private var outputFile: File = _
-  private var filewriter: FileWriter = _
   private var rotations: Long = 0
+  protected var output: Option[(File, OutputStream)] = None //This should NOT be used by subclasses - protected vs private is only to prevent weird AbstractMethod errors
 
   def numRotations = rotations
 
@@ -27,15 +26,12 @@ trait WALFile extends Logging with Metrics {
   private val rotationCounter = counter("rotations")
 
   var numEnqueued = 0
-  private def closeFile = if (filewriter != null) {
-    if (filewriter != null) {
-      filewriter.flush()
-      filewriter.close()
-    }
-    if (outputFile != null) {
-      notifyQueue.foreach(q => q.enqueueOne(outputFile).run)
-    }
-  }
+  private def closeFile = output.foreach( (p) => {
+    val (of, os) = p
+    os.flush()
+    os.close()
+    notifyQueue.foreach(q => q.enqueueOne(of).run)
+  })
 
   private def lpadNum(x: Long, n: Int) = {
     /* Probably inefficient, but doesn't matter much.*/
@@ -52,25 +48,30 @@ trait WALFile extends Logging with Metrics {
   private def rotate = {
     closeFile
     if (!isClosed) {
-      val oldfile = outputFile
-      outputFile = new File(waldir, walPrefix + lpadNum(System.currentTimeMillis, 22) + "_" + lpadNum(rotations,8) + ".dat")
-      filewriter = new FileWriter(outputFile)
+      val oldfile = output.map(_._1)
+      val outputFile = new File(waldir, walPrefix + lpadNum(System.currentTimeMillis, 22) + "_" + lpadNum(rotations,8) + ".dat")
+      val outputstream = new FileOutputStream(outputFile)
+      output = Some((outputFile, outputstream))
       fileSize = 0
       rotations += 1
-      log.info("Rotated old WAL file {}, new WAL file is {}", Seq(oldfile, outputFile): _*)
+      oldfile.map( of => log.info("Rotated old WAL file {}, new WAL file is {}", Seq(of, outputFile): _*) ).getOrElse({ log.info("Created first WAL file is {}", Seq(outputFile): _*)  })
       rotationCounter.inc()
     } else {
       throw new java.io.IOException("Writer is closed")
     }
   }
-  rotate
 
-  var fileSize: Long = 0
+  private var fileSize: Long = 0
+  private val CHARSET = java.nio.charset.Charset.forName("UTF-8")
 
   def write(s: String) = {
+    if (output.isEmpty) {
+      rotate
+    }
     fileSize += s.length
-    filewriter.write(s)
-    filewriter.flush()
+    val (_, outputstream) = output.get
+    outputstream.write(s.getBytes(CHARSET))
+    outputstream.flush()
     if (fileSize > rotateSize) {
       rotate
     }
