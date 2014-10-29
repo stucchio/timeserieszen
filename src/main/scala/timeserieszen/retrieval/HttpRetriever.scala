@@ -23,7 +23,7 @@ class HttpRetriever(storage: SeriesStorage[Double], hostname: String = "localhos
 
   def run = BlazeServer.newBuilder.mountService(service, "/").withHost(hostname).withPort(port).run()
 
-  lazy val service: HttpService = {
+  lazy val service = HttpService {
     case req @ GET -> Root / "get" / tsIdent => {
       val result = storage.read(SeriesIdent(tsIdent))
 

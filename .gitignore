@@ -1,3 +1,6 @@
 *~
 project/target
 target
+*.sw?
+.idea
+*.iml
