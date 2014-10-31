@@ -2,15 +2,12 @@
 package com.timeserieszen.retrieval
 
 import org.joda.time.DateTime
-import org.joda.time.format.ISODateTimeFormat
+import org.joda.time.format.{DateTimeFormat,ISODateTimeFormat}
+import com.timeserieszen.Utils.Try
 import scalaz._
 import Scalaz._
 
 object AtTime {
-
-  def Try[A](a: => A): Option[A] =
-    try Some(a)
-    catch { case e: Exception => None }
 
   sealed trait Epoch
   case class Sec(n: Long) extends Epoch
@@ -32,33 +29,32 @@ object AtTime {
     "ns"  -> { Nano(_: Long) }
   )
 
-  def ordersOfMagnitude(x: Epoch): Int = {
-    x match {
-      case Sec(n) => 0
-      case Deci(n) => -1
-      case Centi(n) => -2
-      case Milli(n) => -3
-      case Micro(n) => -6
-      case Nano(n) => -9
-    }
+  def ordersOfMagnitude(x: Epoch): Int = x match {
+    case Sec(n) => 0
+    case Deci(n) => -1
+    case Centi(n) => -2
+    case Milli(n) => -3
+    case Micro(n) => -6
+    case Nano(n) => -9
   }
 
   def ordersOfMagnitudeToScale(x: Epoch, y: Epoch): Int = ordersOfMagnitude(x) - ordersOfMagnitude(y)
-  // invariant: (x.n)*10^ordersOfMagnitude(x,y) == y.n
+  // invariant: (x.n)*10^ordersOfMagnitudeToScale(x,y) == y.n
+  // todo: need test for ordersOfMagnitudeToScale
 
-  // this is a String implemented version of (n:Long)*Math.pow(10,o).toLong, since for o negative didn't want to deal with Double or BigDecimal.
+  val e: Array[Long] = {
+    def tenToThe(k: Int): Long = List.fill(k)(10.toLong).foldLeft(1.toLong)({(x:Long,y:Long) => x*y})
+    (0 to 9).toArray.map(tenToThe)
+  }
+
   def convertByOrdersOfMagnitude(n: Long, o: Int): Long = {
-    val s = n.toString
-    val m = s.length + o
-
+    require(List(0,1,2,3,6,9).contains(o.abs))
     o match {
       case o if (o == 0) => n
-      case o if (o > 0) => (s ++ "0"*o).toLong
-      case o if (o < 0) => if (m <= 0) 0 else s.take(m).toLong
+      case o if (o > 0) => n*e(o)
+      case o if (o < 0) => n/e(-o)
     }
   }
-  // scala> (-5 to 5) map { convertByOrdersOfMagnitude(1234, _:Int) }
-  // res8: scala.collection.immutable.IndexedSeq[Long] = Vector(0, 0, 1, 12, 123, 1234, 12340, 123400, 1234000, 12340000, 123400000)
 
   // begin code to generate the following implicit defs
   /*
@@ -102,9 +98,7 @@ object AtTime {
   implicit def NanoToCenti(x: Nano): Centi = Centi(convertByOrdersOfMagnitude(x.n, ordersOfMagnitudeToScale(Nano(1),Centi(1))))
   implicit def NanoToMilli(x: Nano): Milli = Milli(convertByOrdersOfMagnitude(x.n, ordersOfMagnitudeToScale(Nano(1),Milli(1))))
   implicit def NanoToMicro(x: Nano): Micro = Micro(convertByOrdersOfMagnitude(x.n, ordersOfMagnitudeToScale(Nano(1),Micro(1))))
-  // as a sanity check, there are 30 implicit defs above, and the number of pairs of (x,y) of a n element set S with x != y is n*(n-1). in our case there are 6 elements.
-  // scala> ((_:Nano).n + 1)(Sec(1))
-  // res10: Long = 1000000001
+  // sanity check: there are 30 implicit defs above, and the number of pairs of (x,y) of a n element set S with x != y is n*(n-1). in our case n = 6.
 
   def stringToEpoch(s: String): Option[Epoch] = {
     val p = s span {(_:Char).isDigit}
@@ -115,47 +109,31 @@ object AtTime {
     n <*> f
   }
 
-  def stringToDateTime(s: String): Option[DateTime] = {
-    // todo: add more parsers. this one is the default ISO8601 format i.e. "20141027T122555.001Z"
-    Try(ISODateTimeFormat.basicDateTime().parseDateTime(s))
+  def stringToDateTime(s: String): List[Option[DateTime]] = {
+    val patterns = List(      // http://graphite.readthedocs.org/en/latest/render_api.html
+      "HH:mm:ss dd.MM.yyyy",  // 23:59:30 31.12.1999 -- 30 seconds to the year 2000
+      "HH:mm dd.MM.yyyy",     // 23:59 31.12.1999 -- 1 minute to the year 2000
+      "MM/dd/yy hh:mmaa",     // 12/31/99 11:59pm -- 1 minute to the year 2000 in USA notation
+      "hhaa MM/dd/yy",        // 12am 01/01/01 -- start of the new millennium
+      "yyyyMMdd HH:mm"        // 19970703 12:45 -- 12:45 July 3th, 1997
+    )
+
+    def f(pat: String, t: String): DateTime = DateTimeFormat.forPattern(pat).parseDateTime(t)
+    val fromPats = patterns.map({ (p:String) => Try(f(p,s)) })
+    val iso8601 = List(Try(ISODateTimeFormat.basicDateTime().parseDateTime(s))) // default ISO8601 format "20141027T122555.001Z"
+
+    fromPats ++ iso8601
   }
 
-  // remark: _.getMillis is the number of ms since the epoch. millis are the smallest unit possible with joda time.
+  // _.getMillis is the number of ms since the epoch. millis are the smallest unit possible with joda time.
   def dateTimeToEpoch(d: DateTime): Milli = Milli(d.getMillis)
 
   def parseAtTime(s: String): Option[Epoch] = {
-    val parsers = List(
-      stringToEpoch _,
-      (x:String) => stringToDateTime(x).map(dateTimeToEpoch)
-    )
+    val parsers = stringToEpoch(s) :: (stringToDateTime(s).map(_.map(dateTimeToEpoch)))
 
     parsers
-      .map(f => f(s)) // apply all parsers to s
       .filter({_.isDefined}) // at most one parser succeeded
       .headOption // Option[Option[Epoch]]
       .flatMap(identity) // equivalently: `.getOrElse(None)`
   }
-
-  val successes = List(
-    "129837129837129us",
-    "129837129837129μs",
-    "129837129837129mus",
-    "129837129837129ms",
-    "129837129837129ns",
-    "129837129837129s",
-    "129837129837129",
-    "20141027T122555.001Z"
-  )
-  // scala> successes map parseAtTime
-  // res1: List[Option[com.timeserieszen.retrieval.AtTime.Epoch]] = List(Some(Micro(129837129837129)), Some(Micro(129837129837129)), Some(Micro(129837129837129)), Some(Milli(129837129837129)), Some(Nano(129837129837129)), Some(Sec(129837129837129)), Some(Sec(129837129837129)), Some(Milli(1414412755001)))
-  // scala> (successes map parseAtTime).filter(_.isDefined).length == successes.length
-  // res4: Boolean = true
-
-  val fails = List(
-    "abc123",
-    "102938102938ff",
-    "2014-10-27T19:04:27.000+05:30"
-  )
-  // scala> fails map parseAtTime
-  // res5: List[Option[com.timeserieszen.retrieval.AtTime.Epoch]] = List(None, None, None)
 }

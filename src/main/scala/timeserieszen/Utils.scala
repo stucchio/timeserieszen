@@ -180,4 +180,8 @@ private object Utils {
       }
     }
   }
+
+  def Try[A](a: => A): Option[A] =
+    try Some(a)
+    catch { case e: Exception => None }
 }
