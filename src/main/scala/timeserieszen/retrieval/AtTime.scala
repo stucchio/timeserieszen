@@ -48,7 +48,7 @@ object AtTime {
   }
 
   def convertByOrdersOfMagnitude(n: Long, o: Int): Long = {
-    require(List(0,1,2,3,6,9).contains(o.abs))
+    require(-9 <= o && o <= 9)
     o match {
       case o if (o == 0) => n
       case o if (o > 0) => n*e(o)
@@ -109,19 +109,18 @@ object AtTime {
     n <*> f
   }
 
+  val jodaPatterns = List(  // http://graphite.readthedocs.org/en/latest/render_api.html
+    "HH:mm:ss dd.MM.yyyy",  // 23:59:30 31.12.1999 -- 30 seconds to the year 2000
+    "HH:mm dd.MM.yyyy",     // 23:59 31.12.1999 -- 1 minute to the year 2000
+    "MM/dd/yy hh:mmaa",     // 12/31/99 11:59pm -- 1 minute to the year 2000 in USA notation
+    "hhaa MM/dd/yy",        // 12am 01/01/01 -- start of the new millennium
+    "yyyyMMdd HH:mm"        // 19970703 12:45 -- 12:45 July 3th, 1997
+  )
+
   def stringToDateTime(s: String): List[Option[DateTime]] = {
-    val patterns = List(      // http://graphite.readthedocs.org/en/latest/render_api.html
-      "HH:mm:ss dd.MM.yyyy",  // 23:59:30 31.12.1999 -- 30 seconds to the year 2000
-      "HH:mm dd.MM.yyyy",     // 23:59 31.12.1999 -- 1 minute to the year 2000
-      "MM/dd/yy hh:mmaa",     // 12/31/99 11:59pm -- 1 minute to the year 2000 in USA notation
-      "hhaa MM/dd/yy",        // 12am 01/01/01 -- start of the new millennium
-      "yyyyMMdd HH:mm"        // 19970703 12:45 -- 12:45 July 3th, 1997
-    )
-
     def f(pat: String, t: String): DateTime = DateTimeFormat.forPattern(pat).parseDateTime(t)
-    val fromPats = patterns.map({ (p:String) => Try(f(p,s)) })
+    val fromPats = jodaPatterns.map({ (p:String) => Try(f(p,s)) })
     val iso8601 = List(Try(ISODateTimeFormat.basicDateTime().parseDateTime(s))) // default ISO8601 format "20141027T122555.001Z"
-
     fromPats ++ iso8601
   }
 
