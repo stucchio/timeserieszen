@@ -39,7 +39,7 @@ object AtTimeSpec extends Properties("AtTime") {
   /*
   property("implicit conversions amongst [Sec,Deci,Centi,Milli,Micro,Nano] works")
 
-  had a tough time writing a test for the implicit conversions. the scala type system didn't allow access of x.n for x:Epoch, only for each of the x:Nano, x:Micro, etc. so instead of fighting that, we'll just give a proof of correctness since there are only 30 cases to inspect.
+  let's just give a proof of correctness since there are only 30 cases to inspect.
 
   here's the proof that the conversion between Sec and Nano works:
 

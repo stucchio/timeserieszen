@@ -4,12 +4,14 @@ Long term goal: To be a better graphite. Not much here right now.
 
 ## Playing around
 
-Open a console.
+Suppose `/tmp/TSZFiles` is the directory where you store your data. Then the time series with name `xyz` is persisted in `/tmp/TSZFiles/xyz.dat`.
+
+Open an sbt console.
 
 ```scala
 import com.timeserieszen.wal_handlers._
 import com.timeserieszen.listener._
-UDPListener(9999).map(x => {println(x); x}).to( new TextWALHandler("/tmp/outputdata.dat").writer).run.run
+UDPListener(9999).map(x => {println(x); x}).to(new TextWALHandler("/tmp/TSZFiles").writer).run.run
 ```
 
 This will make you listen on port 9999 for graphite like messages. One major difference - you can include *multiple* keys and values in the same message. To test this:

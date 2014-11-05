@@ -13,7 +13,7 @@ object ApplicationBuild extends Build {
     resolvers ++= myResolvers,
     name := "timeserieszen",
     //fork := true,
-    libraryDependencies ++= Dependencies.scalazDeps ++ Dependencies.loggingDeps ++ Dependencies.miscDeps ++ Dependencies.http4sDeps ++ Dependencies.testDeps,
+    libraryDependencies ++= Dependencies.scalazDeps ++ Dependencies.loggingDeps ++ Dependencies.miscDeps ++ Dependencies.http4sDeps ++ Dependencies.rngDeps ++ Dependencies.testDeps,
     publishTo := Some(Resolver.file("file",  new File( "/tmp/injera-publish" )) )
   )
 
@@ -61,6 +61,8 @@ object ApplicationBuild extends Build {
     val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.11.3" % "test"
     val scalazScalacheck = "org.scalaz" %% "scalaz-scalacheck-binding" % scalazVersion % "test"
     val testDeps = Seq(scalaCheck, scalazScalacheck)
+
+    val rngDeps = Seq("com.nicta" %% "rng" % "1.3.0")
 
     val guava = "com.google.guava" % "guava" % "14.0"
     val joda = "joda-time" % "joda-time" % "2.4"

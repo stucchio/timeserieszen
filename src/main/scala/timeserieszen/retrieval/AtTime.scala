@@ -9,7 +9,7 @@ import Scalaz._
 
 object AtTime {
 
-  sealed trait Epoch
+  sealed trait Epoch { val n: Long }
   case class Sec(n: Long) extends Epoch
   case class Deci(n: Long) extends Epoch
   case class Centi(n: Long) extends Epoch
@@ -101,9 +101,7 @@ object AtTime {
   // sanity check: there are 30 implicit defs above, and the number of pairs of (x,y) of a n element set S with x != y is n*(n-1). in our case n = 6.
 
   def stringToEpoch(s: String): Option[Epoch] = {
-    val p = s span {(_:Char).isDigit}
-    val digits = p._1
-    val suffix = p._2
+    val (digits,suffix) = s span {(_:Char).isDigit}
     val n = Try(digits.toLong)
     val f = suffixToUnit.get(suffix)
     n <*> f
