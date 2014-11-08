@@ -4,9 +4,7 @@ Long term goal: To be a better graphite. Not much here right now.
 
 ## Playing around
 
-Suppose `/tmp/TSZFiles` is the directory where you store your data. Then the time series with name `xyz` is persisted in `/tmp/TSZFiles/xyz.dat`.
-
-Open an sbt console.
+Suppose `/tmp/TSZFiles` is the directory where you store your data. Open an sbt console.
 
 ```scala
 import com.timeserieszen.wal_handlers._
