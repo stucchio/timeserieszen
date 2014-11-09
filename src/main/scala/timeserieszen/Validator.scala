@@ -13,4 +13,11 @@ object Validator {
     case Some(a) => a.success
     case None => s.failureNel[A]
   }
+
+  // cf scalaz OptionOps
+  final class ValidatorOps[A](self: Option[A]) {
+    def <|>(s: String): ValidationNel[String,A] = alternative(self)(s)
+  }
+
+  implicit def ToValidatorOps[A](o: Option[A]) = new ValidatorOps(o)
 }

@@ -41,20 +41,17 @@ class HttpRetriever(storage: SeriesStorage[Double], hostname: String = "localhos
 
   def validateRoute(target: String, from: String, until: String, format: String = "json"): ValidationNel[String,Route] = {
 
-    val checkTarget: Validator[Series[Double]] = (t: String) => {
-      val entirety: Option[Series[Double]] = storage.read(SeriesIdent(t)) // read the whole file and return the requested interval; todo: smarter retrieval
-      if (entirety.isDefined) entirety.get.success
-      else s"error: failed to read the file ${target}.dat".failureNel[Series[Double]]
-    }
+    val checkTarget: Validator[Series[Double]] = (t: String) =>
+      storage.read(SeriesIdent(t)) <|> s"error: failed to read the file ${target}.dat" // reads the whole file; todo: smarter retrieval
 
     val checkFrom: Validator[Epoch] = (f: String) =>
-      alternative(parseAtTime(f))(s"error: failed to parse 'from=${f}'")
+      parseAtTime(f) <|> s"error: failed to parse 'from=${f}'"
 
     val checkUntil: Validator[Epoch] = (u: String) =>
-      alternative(parseAtTime(u))(s"error: failed to parse 'until=${u}'")
+      parseAtTime(u) <|> s"error: failed to parse 'until=${u}'"
 
     val checkFormat: Validator[String] = (fmt: String) =>
-      alternative((fmt == "json").option("json"))(s"error: format must be json")
+      (fmt == "json").option("json") <|> s"error: format must be json"
 
     val v = (checkTarget(target) |@| checkFrom(from) |@| checkUntil(until) |@| checkFormat(format))(Route.apply _)
 
