@@ -45,14 +45,16 @@ object ApplicationBuild extends Build {
     val scalazDeps = Seq(scalaz, scalazStream)
 
 
-    val http4sVersion = "0.4.0-SNAPSHOT"
+    // val http4sVersion = "0.5.0-SNAPSHOT" // should work but doesn't
+    // val http4sVersion = "0.4.0-SNAPSHOT" // used to work but doesn't now
+    val http4sVersion = "0.3.0"
     val json4sCorerevision = "3.2.10"
     val http4sCore  = "org.http4s" %% "http4s-core"      % http4sVersion
     val http4sServer  = "org.http4s" %% "http4s-server"    % http4sVersion
     val http4sDSL   = "org.http4s" %% "http4s-dsl"         % http4sVersion
     val http4sBlaze = "org.http4s" %% "http4s-blazeserver" % http4sVersion
     val http4sJetty = "org.http4s" %% "http4s-servlet"     % http4sVersion
-    val json4sCore          = "org.json4s"               %% "json4s-core"             % "3.2.10"
+    val json4sCore          = "org.json4s"               %% "json4s-core"             % json4sCorerevision
     val json4sJackson       = "org.json4s"               %% "json4s-jackson"          % json4sCorerevision
     val json4sNative        = "org.json4s"               %% "json4s-native"           % json4sCorerevision
 

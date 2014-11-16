@@ -1,6 +1,8 @@
 package com.timeserieszen
 
 import scala.reflect.ClassTag
+import scalaz._
+import Scalaz._
 
 private object Utils {
   def datapointToString(d: DataPoint[Double]): String = {
@@ -184,4 +186,8 @@ private object Utils {
   def Try[A](a: => A): Option[A] =
     try Some(a)
     catch { case e: Exception => None }
+
+  def Tryz[A](a: => A): ValidationNel[Exception,A] =
+    try Success(a)
+    catch { case e: Exception => e.failureNel[A] }
 }
