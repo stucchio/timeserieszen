@@ -191,7 +191,6 @@ private object Utils {
     try Success(a)
     catch { case e: Exception => e.failureNel[A] }
 
-  // http://hackage.haskell.org/package/base-4.7.0.1/docs/src/Data-Either.html
   // either :: (a -> c) -> (b -> c) -> Either a b -> c
   def either[A,B,C](fail: A => C)(succeed: B => C)(v: Validation[A,B]): C = v match {
     case Success(x) => succeed(x)

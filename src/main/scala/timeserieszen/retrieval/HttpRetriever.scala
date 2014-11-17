@@ -79,19 +79,18 @@ class HttpRetriever(storage: SeriesStorage[Double], hostname: String = "localhos
     }]
   */
 
-  // just define an either function as in haskell. not worth the time right now.
-
   implicit val formats = DefaultFormats // json4s serialization settings for rendering GraphiteOutput
-  def render(name: String, data: Seq[(Long,Double)]): String = {
+  def renderSeries(name: String, data: Seq[(Long,Double)]): String = {
     def f(xs: Seq[(Long,Double)]): Array[Array[Any]] = xs.map(p => Array[Any](p._2,p._1)).toArray // flip p in accordance with the graphite output format
     write(Array(GraphiteOutput(name, f(data))))
   }
 
-  def renderJson(v: ValidationNel[String,Route]): String =
-    either({xs:NonEmptyList[String] => xs.toList.mkString("\n")}
-          )({r: Route =>
-             val datapoints = r.series.data.filter({p:(Long,Double) => r.from.n <= p._1 && p._1 <= r.until.n})
-             render(r.series.ident.name, datapoints)
+  // mnemonic: either(failure_function)(success_function)(validation[failure_type,success_type])
+  def render0(v: ValidationNel[String,Route]): Task[Response] =
+    either({xs:NonEmptyList[String] => NotFound(xs.toList.mkString("\n"))
+          })({r:Route =>
+              val datapoints = r.series.data.filter({p:(Long,Double) => r.from.n <= p._1 && p._1 <= r.until.n})
+              Ok(renderSeries(r.series.ident.name, datapoints))
           })(v)
 
   lazy val service: HttpService = { // http4s 0.3.0
@@ -100,20 +99,15 @@ class HttpRetriever(storage: SeriesStorage[Double], hostname: String = "localhos
     case req @ GET -> Root / "get" / tsIdent =>
       either({xs:NonEmptyList[Exception] => NotFound(xs.head.getMessage)}
             )({s:Option[Series[Double]] =>
-               if (s.isDefined) Ok(render(tsIdent, s.get.data))
+               if (s.isDefined) Ok(renderSeries(tsIdent, s.get.data))
                else NotFound(s"error: failed to read the file ${tsIdent}.dat")
             })(Tryz(storage.read(SeriesIdent(tsIdent))))
 
     case GET -> Root / "render" :? Target(target) +& From(from) +& Until(until) +& Format(format) =>
-      either({xs:NonEmptyList[String] => NotFound(xs.toList.mkString("\n"))
-            })({r:Route =>
-                val datapoints = r.series.data.filter({p:(Long,Double) => r.from.n <= p._1 && p._1 <= r.until.n})
-                Ok(render(r.series.ident.name, datapoints))
-            })(validateRoute(target,from,until,format))
+      render0(validateRoute(target,from,until,format))
 
-    // format=json is the default, so may omit it
     case GET -> Root / "render" :? Target(target) +& From(from) +& Until(until) =>
-      Ok(renderJson(validateRoute(target,from,until)))
+      render0(validateRoute(target,from,until))
 
     case req => NotFound()
   }
