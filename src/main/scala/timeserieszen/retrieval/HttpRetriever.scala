@@ -22,6 +22,10 @@ import org.http4s.server.middleware.EntityLimiter.EntityTooLarge
 import org.http4s.server.middleware.PushSupport._
 import scodec.bits.ByteVector
 
+import org.json4s._
+import org.json4s.native.Serialization
+import org.json4s.native.Serialization.{read, write}
+
 import org.http4s.server.blaze.BlazeServer
 import com.typesafe.scalalogging.slf4j.StrictLogging
 
@@ -31,6 +35,7 @@ object From extends ParamMatcher("from")
 object Until extends ParamMatcher("until")
 
 case class Route(series: Series[Double], from: Epoch, until: Epoch, format: String)
+case class GraphiteOutput(target: String, datapoints: Array[Array[Any]])
 
 class HttpRetriever(storage: SeriesStorage[Double], hostname: String = "localhost", port: Int = 9999)(implicit ec: ExecutionContext = ExecutionContext.global) extends StrictLogging {
 
@@ -74,9 +79,10 @@ class HttpRetriever(storage: SeriesStorage[Double], hostname: String = "localhos
     }]
   */
 
+  implicit val formats = DefaultFormats // json4s serialization settings for rendering GraphiteOutput
   def render(name: String, data: Seq[(Long,Double)]): String = {
-    def f(p: (Long,Double)): String = "[" + p._2.toString + "," + p._1.toString + "]"
-    s"""[{"target":"${name}","datapoints": [""" + data.map(f).mkString(",") + """]}]"""
+    def f(xs: Seq[(Long,Double)]): Array[Array[Any]] = xs.map(p => Array[Any](p._2,p._1)).toArray // flip p in accordance with the graphite output format
+    write(Array(GraphiteOutput(name, f(data))))
   }
 
   def renderJson(v: ValidationNel[String,Route]): String = v match {
@@ -95,8 +101,8 @@ class HttpRetriever(storage: SeriesStorage[Double], hostname: String = "localhos
         case Success(s) => if (s.isDefined) {
                               val series = s.get
                               Ok(render(tsIdent, series.data))
-                           } else Ok(s"error: failed to read the file ${tsIdent}.dat")
-        case Failure(xs) => Ok(xs.head.getMessage)
+                           } else NotFound(s"error: failed to read the file ${tsIdent}.dat")
+        case Failure(xs) => NotFound(xs.head.getMessage)
       }
     }
 
