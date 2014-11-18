@@ -10,13 +10,11 @@ object Validator {
   type Validator[A] = String => ErrorsOr[A]
 
   def alternative[A](o: Option[A])(s: String): ValidationNel[String,A] = o match {
-    case Some(a) => a.success
+    case Some(a) => a.successNel
     case None => s.failureNel[A]
   }
 
-  final class ValidatorOps[A](self: Option[A]) {
+  final implicit class ValidatorOps[A](val self: Option[A]) extends AnyVal {
     def <|>(s: String): ValidationNel[String,A] = alternative(self)(s)
   }
-
-  implicit def ToValidatorOps[A](o: Option[A]) = new ValidatorOps(o)
 }
