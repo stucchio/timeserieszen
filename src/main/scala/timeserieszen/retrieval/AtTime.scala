@@ -2,7 +2,7 @@
 package com.timeserieszen.retrieval
 
 import org.joda.time.DateTime
-import org.joda.time.format.{DateTimeFormat,ISODateTimeFormat}
+import org.joda.time.format.{DateTimeFormat,ISODateTimeFormat, DateTimeFormatter}
 import com.timeserieszen.Utils.Try
 import scalaz._
 import Scalaz._
@@ -113,24 +113,13 @@ object AtTime {
     "MM/dd/yy hh:mmaa",     // 12/31/99 11:59pm -- 1 minute to the year 2000 in USA notation
     "hhaa MM/dd/yy",        // 12am 01/01/01 -- start of the new millennium
     "yyyyMMdd HH:mm"        // 19970703 12:45 -- 12:45 July 3th, 1997
-  )
+  ).map( DateTimeFormat.forPattern ) ++
+  List(ISODateTimeFormat.basicDateTime()) // default ISO8601 format "20141027T122555.001Z"
 
-  def stringToDateTime(s: String): List[Option[DateTime]] = {
-    def f(pat: String, t: String): DateTime = DateTimeFormat.forPattern(pat).parseDateTime(t)
-    val fromPats = jodaPatterns.map({ (p:String) => Try(f(p,s)) })
-    val iso8601 = List(Try(ISODateTimeFormat.basicDateTime().parseDateTime(s))) // default ISO8601 format "20141027T122555.001Z"
-    fromPats ++ iso8601
-  }
+  def stringToDateTime(s: String): Option[DateTime] = jodaPatterns.flatMap({ (p:DateTimeFormatter) => Try(p.parseDateTime(s)) }).headOption
 
   // _.getMillis is the number of ms since the epoch. millis are the smallest unit possible with joda time.
   def dateTimeToEpoch(d: DateTime): Milli = Milli(d.getMillis)
 
-  def parseAtTime(s: String): Option[Epoch] = {
-    val parsers = stringToEpoch(s) :: (stringToDateTime(s).map(_.map(dateTimeToEpoch)))
-
-    parsers
-      .filter({_.isDefined}) // at most one parser succeeded
-      .headOption // Option[Option[Epoch]]
-      .flatMap(identity) // equivalently: `.getOrElse(None)`
-  }
+  def parseAtTime(s: String): Option[Epoch] = stringToEpoch(s) <+> (stringToDateTime(s).map(dateTimeToEpoch))
 }
