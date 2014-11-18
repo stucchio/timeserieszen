@@ -2,6 +2,7 @@ package com.timeserieszen.retrieval
 
 import com.timeserieszen._
 import com.timeserieszen.storage._
+import com.timeserieszen.monitoring._
 import com.timeserieszen.retrieval.AtTime._
 import com.timeserieszen.Validator._
 import com.timeserieszen.Utils.{Tryz,either}
@@ -27,7 +28,7 @@ import org.json4s.native.Serialization
 import org.json4s.native.Serialization.{read, write}
 
 import org.http4s.server.blaze.BlazeServer
-import com.typesafe.scalalogging.slf4j.StrictLogging
+// import com.typesafe.scalalogging.slf4j.StrictLogging
 
 object Target extends ParamMatcher("target")
 object Format extends ParamMatcher("format")
@@ -37,7 +38,7 @@ object Until extends ParamMatcher("until")
 case class Route(series: Series[Double], from: Epoch, until: Epoch, format: String)
 case class GraphiteOutput(target: String, datapoints: Array[Array[Any]])
 
-class HttpRetriever(storage: SeriesStorage[Double], hostname: String = "localhost", port: Int = 9999)(implicit ec: ExecutionContext = ExecutionContext.global) extends StrictLogging {
+class HttpRetriever(storage: SeriesStorage[Double], hostname: String = "localhost", port: Int = 8080)(implicit ec: ExecutionContext = ExecutionContext.global) extends Logging {
 
   def run = BlazeServer.newBuilder.mountService(service, "/").withHost(hostname).withPort(port).run()
 
@@ -93,22 +94,33 @@ class HttpRetriever(storage: SeriesStorage[Double], hostname: String = "localhos
               Ok(renderSeries(r.series.ident.name, datapoints))
           })(v)
 
-  lazy val service: HttpService = { // http4s 0.3.0
-  // lazy val service = HttpService { // http4s 0.4.0-snapshot
+  // TODO: mixin the logging so it is done automatically, e.g. as in https://github.com/http4s/http4s_demo
+  def logReq(r: Request): Unit = log.info(s"${r.remoteAddr.getOrElse("null")} -> ${r.method}: ${r.uri.path} ${r.uri.query}")
 
-    case req @ GET -> Root / "get" / tsIdent =>
+  // lazy val service = HttpService { // http4s 0.4.0-snapshot
+  lazy val service: HttpService = { // http4s 0.3.0
+    case req @ GET -> Root / "get" / tsIdent => {
+      logReq(req)
       either({xs:NonEmptyList[Exception] => NotFound(xs.head.getMessage)}
             )({s:Option[Series[Double]] =>
                if (s.isDefined) Ok(renderSeries(tsIdent, s.get.data))
                else NotFound(s"error: failed to read the file ${tsIdent}.dat")
             })(Tryz(storage.read(SeriesIdent(tsIdent))))
+    }
 
-    case GET -> Root / "render" :? Target(target) +& From(from) +& Until(until) +& Format(format) =>
+    case req @ GET -> Root / "render" :? Target(target) +& From(from) +& Until(until) +& Format(format) => {
+      logReq(req)
       render0(validateRoute(target,from,until,format))
+    }
 
-    case GET -> Root / "render" :? Target(target) +& From(from) +& Until(until) =>
+    case req @ GET -> Root / "render" :? Target(target) +& From(from) +& Until(until) => {
+      logReq(req)
       render0(validateRoute(target,from,until))
+    }
 
-    case req => NotFound()
+    case req => {
+        logReq(req)
+        NotFound()
+    }
   }
 }

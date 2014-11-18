@@ -28,6 +28,11 @@ object Config extends Logging {
     lazy val staging_path = cfg.getDirectory("staging_path")
   }
 
+  object Retrieval extends Subconfig(config, "retrieval") {
+    lazy val hostname = cfg.getString("hostname")
+    lazy val port = cfg.getInt("port")
+  }
+
   object Monitoring extends Subconfig(config, "monitoring") {
     lazy val metrics_prefix = cfg.getString("metrics_prefix")
   }
