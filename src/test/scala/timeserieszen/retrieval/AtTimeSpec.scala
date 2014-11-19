@@ -7,7 +7,7 @@ import Arbitrary.arbitrary
 import Prop._
 import com.timeserieszen.retrieval.AtTime
 import org.joda.time.DateTime
-import org.joda.time.format.{DateTimeFormat,ISODateTimeFormat}
+import org.joda.time.format.{DateTimeFormat,ISODateTimeFormat, DateTimeFormatter}
 
 object AtTimeSpec extends Properties("AtTime") {
   val prop_stringToEpoch = {
@@ -22,7 +22,7 @@ object AtTimeSpec extends Properties("AtTime") {
   }
 
   val prop_stringToDateTime = {
-    def dtString(p: String, n:Long) = DateTimeFormat.forPattern(p).print(new DateTime(n))
+    def dtString(p: DateTimeFormatter, n:Long) = p.print(new DateTime(n))
 
     val dateTimeStringGen = for {
       p <- Gen.oneOf(AtTime.jodaPatterns)
@@ -30,7 +30,7 @@ object AtTimeSpec extends Properties("AtTime") {
     } yield dtString(p,n)
 
     // there should be one and and only one Some in the List[Option[DateTime]] returned by stringToDateTime
-    forAll(dateTimeStringGen)(s => AtTime.stringToDateTime(s).filter(_.isDefined).length == 1)
+    forAll(dateTimeStringGen)(s => AtTime.stringToDateTime(s).isDefined)
   }
 
   property("stringToDateTime: exists unique") = prop_stringToDateTime
