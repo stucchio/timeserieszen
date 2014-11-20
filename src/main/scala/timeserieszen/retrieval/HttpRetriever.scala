@@ -27,8 +27,8 @@ import org.json4s._
 import org.json4s.native.Serialization
 import org.json4s.native.Serialization.{read, write}
 
-import org.http4s.server.blaze.BlazeServer
-// import com.typesafe.scalalogging.slf4j.StrictLogging
+import org.http4s.server.blaze.BlazeBuilder // http4s 0.4.0
+// import org.http4s.server.blaze.BlazeServer // http4s 0.3.0
 
 object Target extends ParamMatcher("target")
 object Format extends ParamMatcher("format")
@@ -40,7 +40,7 @@ case class GraphiteOutput(target: String, datapoints: Array[Array[Any]])
 
 class HttpRetriever(storage: SeriesStorage[Double], hostname: String = "localhost", port: Int = 8080)(implicit ec: ExecutionContext = ExecutionContext.global) extends Logging {
 
-  def run = BlazeServer.newBuilder.mountService(service, "/").withHost(hostname).withPort(port).run()
+  def run = BlazeBuilder.bindHttp(port, hostname).mountService(service, "/").run.awaitShutdown()
 
   def validateRoute(target: String, from: String, until: String, format: String = "json"): ValidationNel[String,Route] = {
 
@@ -97,8 +97,8 @@ class HttpRetriever(storage: SeriesStorage[Double], hostname: String = "localhos
   // TODO: mixin the logging so it is done automatically, e.g. as in https://github.com/http4s/http4s_demo
   def logReq(r: Request): Unit = log.info(s"${r.remoteAddr.getOrElse("null")} -> ${r.method}: ${r.uri.path} ${r.uri.query}")
 
-  // lazy val service = HttpService { // http4s 0.4.0-snapshot
-  lazy val service: HttpService = { // http4s 0.3.0
+  lazy val service = HttpService { // http4s 0.4.0
+  // lazy val service: HttpService = { // http4s 0.3.0
     case req @ GET -> Root / "get" / tsIdent => {
       logReq(req)
       either({xs:NonEmptyList[Exception] => NotFound(xs.head.getMessage)}
@@ -120,7 +120,7 @@ class HttpRetriever(storage: SeriesStorage[Double], hostname: String = "localhos
 
     case req => {
         logReq(req)
-        NotFound()
+        NotFound("404: not found")
     }
   }
 }

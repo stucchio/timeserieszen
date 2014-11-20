@@ -28,9 +28,9 @@ case class TextWALHandler(waldir: java.io.File, override val rotateSize: Long = 
   protected val metricPrefix: String = "text_wal_handler"
   private val dataPoints = counter("datapoints")
 
-
-
-  val writer = io.resource[WALFile,DataPoint[Double] => Task[Unit]](Task.delay { this }
+  // val writer = io.resource[WALFile,DataPoint[Double] => Task[Unit]](Task.delay { this }
+  // see https://github.com/scalaz/scalaz-stream/blob/master/src/main/scala/scalaz/stream/io.scala#L149
+  val writer = io.resource[Task,WALFile,DataPoint[Double] => Task[Unit]](Task.delay { this }
       )( (f:WALFile) => Task.delay {
         f.close()
         topic.close.run

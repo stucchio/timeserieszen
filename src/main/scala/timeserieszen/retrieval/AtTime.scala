@@ -18,7 +18,8 @@ object AtTime {
   case class Nano(n: Long) extends Epoch
 
   val suffixToUnit = Map(
-    ""    -> { Sec(_: Long) },
+    ""    -> { Milli(_: Long) }, // temporary hack due to the fact that joda stores epoch in millis. TODO: fix the units configuration...
+    // ""    -> { Sec(_: Long) },
     "s"   -> { Sec(_: Long) },
     "ds"  -> { Deci(_: Long) },
     "cs"  -> { Centi(_: Long) },
@@ -40,7 +41,7 @@ object AtTime {
 
   def ordersOfMagnitudeToScale(x: Epoch, y: Epoch): Int = ordersOfMagnitude(x) - ordersOfMagnitude(y)
   // invariant: (x.n)*10^ordersOfMagnitudeToScale(x,y) == y.n
-  // todo: need test for ordersOfMagnitudeToScale
+  // TODO: need test for ordersOfMagnitudeToScale
 
   val e: Array[Long] = {
     def tenToThe(k: Int): Long = List.fill(k)(10.toLong).foldLeft(1.toLong)({(x:Long,y:Long) => x*y})

@@ -22,7 +22,8 @@ object AtTimeSpec extends Properties("AtTime") {
   }
 
   val prop_stringToDateTime = {
-    def dtString(p: DateTimeFormatter, n:Long) = p.print(new DateTime(n))
+    // warning: joda assumes n is ms since the epoch. thus if you pass in `date +%s` you'll get a date in 1970 instead of a date in 2014.
+    def dtString(p: DateTimeFormatter, n:Long) = p.print(new DateTime(n)) // TODO: take into account the units of the epoch time
 
     val dateTimeStringGen = for {
       p <- Gen.oneOf(AtTime.jodaPatterns)
