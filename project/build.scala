@@ -41,7 +41,7 @@ object ApplicationBuild extends Build {
 
     val scalazVersion = "7.1.0"
     val scalaz = "org.scalaz" %% "scalaz-core" % scalazVersion
-    val scalazStream = "org.scalaz.stream" %% "scalaz-stream" % "0.5a"
+    val scalazStream = "org.scalaz.stream" %% "scalaz-stream" % "0.6a"
     val scalazDeps = Seq(scalaz, scalazStream)
 
 
