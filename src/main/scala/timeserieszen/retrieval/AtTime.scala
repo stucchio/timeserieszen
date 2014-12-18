@@ -103,7 +103,7 @@ object AtTime {
 
   def stringToEpoch(s: String): Option[Epoch] = {
     val (digits,suffix) = s span {(_:Char).isDigit}
-    val n = catching(classOf[Exception]).opt { digits.toLong }
+    val n = catching(classOf[Exception]).opt { digits.toLong }   //TODO could a less general exception be used?
     val f = suffixToUnit.get(suffix)
     n <*> f
   }
@@ -117,6 +117,7 @@ object AtTime {
   ).map( DateTimeFormat.forPattern ) ++
   List(ISODateTimeFormat.basicDateTime()) // default ISO8601 format "20141027T122555.001Z"
 
+  //TODO could a less general exception be used?
   def stringToDateTime(s: String): Option[DateTime] = jodaPatterns.flatMap({ (p:DateTimeFormatter) => catching(classOf[Exception]).opt { p.parseDateTime(s) } }).headOption
 
   // _.getMillis is the number of ms since the epoch. millis are the smallest unit possible with joda time.
