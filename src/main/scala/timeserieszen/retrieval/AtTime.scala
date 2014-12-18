@@ -3,7 +3,7 @@ package com.timeserieszen.retrieval
 
 import org.joda.time.DateTime
 import org.joda.time.format.{DateTimeFormat,ISODateTimeFormat, DateTimeFormatter}
-import com.timeserieszen.Utils.Try
+import scala.util.control.Exception._
 import scalaz._
 import Scalaz._
 
@@ -103,7 +103,7 @@ object AtTime {
 
   def stringToEpoch(s: String): Option[Epoch] = {
     val (digits,suffix) = s span {(_:Char).isDigit}
-    val n = Try(digits.toLong)
+    val n = catching(classOf[Exception]).opt { digits.toLong }
     val f = suffixToUnit.get(suffix)
     n <*> f
   }
@@ -117,7 +117,7 @@ object AtTime {
   ).map( DateTimeFormat.forPattern ) ++
   List(ISODateTimeFormat.basicDateTime()) // default ISO8601 format "20141027T122555.001Z"
 
-  def stringToDateTime(s: String): Option[DateTime] = jodaPatterns.flatMap({ (p:DateTimeFormatter) => Try(p.parseDateTime(s)) }).headOption
+  def stringToDateTime(s: String): Option[DateTime] = jodaPatterns.flatMap({ (p:DateTimeFormatter) => catching(classOf[Exception]).opt { p.parseDateTime(s) } }).headOption
 
   // _.getMillis is the number of ms since the epoch. millis are the smallest unit possible with joda time.
   def dateTimeToEpoch(d: DateTime): Milli = Milli(d.getMillis)
