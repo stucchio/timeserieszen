@@ -5,7 +5,7 @@ import com.timeserieszen.storage._
 import com.timeserieszen.monitoring._
 import com.timeserieszen.retrieval.AtTime._
 import com.timeserieszen.Validator._
-import com.timeserieszen.Utils.{Tryz,either}
+import com.timeserieszen.Utils.Tryz
 
 import scalaz._
 import Scalaz._
@@ -88,11 +88,13 @@ class HttpRetriever(storage: SeriesStorage[Double], hostname: String = "localhos
 
   // mnemonic: either(failure_function)(success_function)(validation[failure_type,success_type])
   def render0(v: ValidationNel[String,Route]): Task[Response] =
-    either({xs:NonEmptyList[String] => NotFound(xs.toList.mkString("\n"))
-          })({r:Route =>
+    v.fold(
+      (xs:NonEmptyList[String]) => NotFound(xs.toList.mkString("\n")),
+      (r:Route) => {
               val datapoints = r.series.data.filter({p:(Long,Double) => r.from.n <= p._1 && p._1 <= r.until.n})
               Ok(renderSeries(r.series.ident.name, datapoints))
-          })(v)
+          }
+    )
 
   // TODO: mixin the logging so it is done automatically, e.g. as in https://github.com/http4s/http4s_demo
   def logReq(r: Request): Unit = log.info(s"${r.remoteAddr.getOrElse("null")} -> ${r.method}: ${r.uri.path} ${r.uri.query}")
@@ -101,11 +103,13 @@ class HttpRetriever(storage: SeriesStorage[Double], hostname: String = "localhos
   // lazy val service: HttpService = { // http4s 0.3.0
     case req @ GET -> Root / "get" / tsIdent => {
       logReq(req)
-      either({xs:NonEmptyList[Exception] => NotFound(xs.head.getMessage)}
-            )({s:Option[Series[Double]] =>
-               if (s.isDefined) Ok(renderSeries(tsIdent, s.get.data))
-               else NotFound(s"error: failed to read the file ${tsIdent}.dat")
-            })(Tryz(storage.read(SeriesIdent(tsIdent))))
+      Tryz(storage.read(SeriesIdent(tsIdent))).fold(
+        (xs:NonEmptyList[Exception]) => NotFound(xs.head.getMessage),
+        (s:Option[Series[Double]]) => {
+          if (s.isDefined) Ok(renderSeries(tsIdent, s.get.data))
+          else NotFound(s"error: failed to read the file ${tsIdent}.dat")
+        }
+      )
     }
 
     case req @ GET -> Root / "render" :? Target(target) +& From(from) +& Until(until) +& Format(format) => {
