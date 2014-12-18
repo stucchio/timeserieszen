@@ -182,8 +182,4 @@ private object Utils {
       }
     }
   }
-
-  def Tryz[A](a: => A): ValidationNel[Exception,A] =
-    try Success(a)
-    catch { case e: Exception => e.failureNel[A] }
 }

@@ -5,7 +5,6 @@ import com.timeserieszen.storage._
 import com.timeserieszen.monitoring._
 import com.timeserieszen.retrieval.AtTime._
 import com.timeserieszen.Validator._
-import com.timeserieszen.Utils.Tryz
 
 import scalaz._
 import Scalaz._
@@ -103,13 +102,16 @@ class HttpRetriever(storage: SeriesStorage[Double], hostname: String = "localhos
   // lazy val service: HttpService = { // http4s 0.3.0
     case req @ GET -> Root / "get" / tsIdent => {
       logReq(req)
-      Tryz(storage.read(SeriesIdent(tsIdent))).fold(
-        (xs:NonEmptyList[Exception]) => NotFound(xs.head.getMessage),
-        (s:Option[Series[Double]]) => {
-          if (s.isDefined) Ok(renderSeries(tsIdent, s.get.data))
-          else NotFound(s"error: failed to read the file ${tsIdent}.dat")
+      try {
+        val s = storage.read(SeriesIdent(tsIdent))
+        if (s.isDefined) {
+          Ok(renderSeries(tsIdent, s.get.data))
+        } else {
+          NotFound(s"error: failed to read the file ${tsIdent}.dat")
         }
-      )
+      } catch {
+        case (e:Exception) => NotFound(e.getMessage)
+      }
     }
 
     case req @ GET -> Root / "render" :? Target(target) +& From(from) +& Until(until) +& Format(format) => {
