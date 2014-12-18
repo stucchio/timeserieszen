@@ -46,7 +46,7 @@ object ApplicationBuild extends Build {
 
 
     // val http4sVersion = "0.5.0-SNAPSHOT" // doesn't work
-    val http4sVersion = "0.4.0"
+    val http4sVersion = "0.4.1" // https://github.com/http4s/http4s/issues/75
     val json4sCorerevision = "3.2.10"
     val http4sCore  = "org.http4s" %% "http4s-core"      % http4sVersion
     val http4sServer  = "org.http4s" %% "http4s-server"    % http4sVersion
