@@ -31,7 +31,7 @@ object SequentialBinaryV1StorageHandlerSpec extends Properties("SequentialBinary
       val id = SeriesIdent(UUID.randomUUID().toString)
       val oldSeries = BufferedSeries(id, data._1, data._2)
       s.write(oldSeries)
-      val newSeries = s.read(id).get
+      val newSeries = s.read(id).fold(_ => ???, s => s)
       ((oldSeries.ident == newSeries.ident) :| "identities do not match") &&
       ((oldSeries.data == newSeries.data) :| "data series do not match")
     })
@@ -53,7 +53,7 @@ object SequentialBinaryV1StorageHandlerSpec extends Properties("SequentialBinary
       s.write(oldSeries1)
       s.write(oldSeries2)
 
-      val newSeries = s.read(id).get
+      val newSeries = s.read(id).fold(_ => ???, s => s)
 
       ((oldSeries.ident == newSeries.ident) :| "identities do not match") &&
       ((oldSeries.data == newSeries.data) :| "data series do not match")
@@ -88,7 +88,7 @@ object SequentialBinaryV1StorageHandlerSpec extends Properties("SequentialBinary
       s.write(BufferedSeries(id, t2, v2))
 
       val oldSeries = BufferedSeries(id, t, v)
-      val newSeries = s.read(id).get
+      val newSeries = s.read(id).fold(_ => ???, s => s)
 
       ((oldSeries.ident == newSeries.ident) :| "identities do not match") &&
       ((oldSeries.data == newSeries.data) :| "data series do not match")

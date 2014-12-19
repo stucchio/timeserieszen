@@ -9,10 +9,7 @@ object Validator {
   type ErrorsOr[A] = ValidationNel[String, A]
   type Validator[A] = String => ErrorsOr[A]
 
-  def alternative[A](o: Option[A])(s: String): ValidationNel[String,A] = o match {
-    case Some(a) => a.successNel
-    case None => s.failureNel[A]
-  }
+  def alternative[A](o: Option[A])(s: String): ValidationNel[String,A] = o.map(_.successNel).getOrElse(s.failureNel[A])
 
   final implicit class ValidatorOps[A](val self: Option[A]) extends AnyVal {
     def <|>(s: String): ValidationNel[String,A] = alternative(self)(s)

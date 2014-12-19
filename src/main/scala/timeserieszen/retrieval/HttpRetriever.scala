@@ -44,7 +44,7 @@ class HttpRetriever(storage: SeriesStorage[Double], hostname: String = "localhos
   def validateRoute(target: String, from: String, until: String, format: String = "json"): ValidationNel[String,Route] = {
 
     val checkTarget: Validator[Series[Double]] = (t: String) =>
-      storage.read(SeriesIdent(t)) <|> s"error: failed to read the file ${t}.dat" // reads the whole file; TODO: smarter retrieval
+    storage.read(SeriesIdent(t)).leftMap(_ => NonEmptyList(s"error: failed to read the file ${t}.dat")) // reads the whole file; TODO: smarter retrieval
 
     val checkFrom: Validator[Epoch] = (f: String) =>
       parseAtTime(f) <|> s"error: failed to parse 'from=${f}'"
@@ -103,13 +103,12 @@ class HttpRetriever(storage: SeriesStorage[Double], hostname: String = "localhos
       logReq(req)
       try {
         val s = storage.read(SeriesIdent(tsIdent))
-        if (s.isDefined) {
-          Ok(renderSeries(tsIdent, s.get.data))
-        } else {
-          NotFound(s"error: failed to read the file ${tsIdent}.dat")
-        }
+        s.fold(
+          _ => NotFound(s"error: failed to read the file ${tsIdent}.dat"),
+          series => Ok(renderSeries(tsIdent, series.data))
+        )
       } catch {
-        case (e:Exception) => NotFound(e.getMessage)
+        case (e:Exception) => InternalServerError(e.getMessage)
       }
     }
 

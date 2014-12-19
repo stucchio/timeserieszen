@@ -10,10 +10,13 @@ import scalaz.stream._
 import scalaz.concurrent._
 import java.io._
 
+sealed trait SeriesStorageError
+case object SeriesMissing extends SeriesStorageError
+
 trait SeriesStorage[T] {
   def write(series: Series[T]): Unit
   def append(series: Series[T]): Unit
-  def read(ident: SeriesIdent): Option[Series[T]]
+  def read(ident: SeriesIdent): Validation[SeriesStorageError,Series[T]]
 
   private def deleteOrWrite(x: WALHandler.FileRemover \/ Series[T]): Task[Unit] = Task { x.fold( rm => rm(), write _ ) }
 
@@ -28,13 +31,13 @@ private abstract class SeriesStorageFromAtomic(dataDir: File, stagingDir: File) 
 
   def write(series: Series[Double]): Unit = writeToFile(identToFilename(series.ident), stagingDir, series.times, series.values)
   def append(series: Series[Double]): Unit = writeToFile(identToFilename(series.ident), stagingDir, series.times, series.values)
-  def read(ident: SeriesIdent): Option[Series[Double]] = {
+  def read(ident: SeriesIdent): Validation[SeriesStorageError, Series[Double]] = {
     val f = identToFilename(ident)
     if (f.exists()) {
       val data = readFile(f)
-      Some(BufferedSeries(ident, data._1, data._2))
+      BufferedSeries(ident, data._1, data._2).success
     } else {
-      None
+      SeriesMissing.fail[Series[Double]]
     }
   }
 }

@@ -5,7 +5,7 @@ import scalaz._
 import Scalaz._
 import Arbitrary.arbitrary
 import Prop._
-import com.timeserieszen.storage.SeriesStorage
+import com.timeserieszen.storage.{SeriesStorage, SeriesStorageError, SeriesMissing}
 import com.timeserieszen.{Series, SeriesIdent, TestHelpers}
 import org.joda.time.DateTime
 import org.joda.time.format.{DateTimeFormat,ISODateTimeFormat, DateTimeFormatter}
@@ -22,7 +22,7 @@ object HttpRetrieverSpec extends Properties("HttpRetriever") {
   }
 
   val emptyRetriever = new MockServer(new HttpRetriever(new MockSeriesStorageReadOnly[Double] {
-    def read(ident: SeriesIdent): Option[Series[Double]] = None
+    def read(ident: SeriesIdent): Validation[SeriesStorageError,Series[Double]] = SeriesMissing.fail[Series[Double]]
   }).service)
 
   property("empty retriever yields 404s") = forAllNoShrink(TestHelpers.arbitrarySeriesIdent)( ident => {
