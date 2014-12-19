@@ -34,7 +34,7 @@ object TestHelpers {
     }
   }
 
-  implicit val arbitrarySeriesIdent = Arbitrary( Gen.alphaStr.map(x => "a" + x.replace(" ", "")).map(SeriesIdent))
+  implicit val arbitrarySeriesIdent: Arbitrary[SeriesIdent] = Arbitrary( Gen.alphaStr.map(x => "a" + x.replace(" ", "")).map(SeriesIdent))
 
   implicit val ArbitraryDataPoint = Arbitrary(for {
     ts <- arbitrary[Long]
