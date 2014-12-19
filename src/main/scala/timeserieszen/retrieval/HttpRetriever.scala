@@ -85,7 +85,6 @@ class HttpRetriever(storage: SeriesStorage[Double], hostname: String = "localhos
     write(Array(GraphiteOutput(name, f(data))))
   }
 
-  // mnemonic: either(failure_function)(success_function)(validation[failure_type,success_type])
   def render0(v: ValidationNel[String,Route]): Task[Response] =
     v.fold(
       (xs:NonEmptyList[String]) => NotFound(xs.toList.mkString("\n")),
