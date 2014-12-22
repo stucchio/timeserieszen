@@ -12,17 +12,24 @@ object Main extends Logging {
 
   def main(args: Array[String]) {
     log.info("Starting timeserieszen server")
-    val inputStream = UDPListener(Config.Listener.port, Config.Listener.block_size)
-    val walWriter = TextWALHandler(Config.WAL.path, rotateSize=Config.WAL.blockSize)
-    Task.fork( inputStream.to(walWriter.writer).run ).runAsync(_ => ())
-    log.info("Created wal listener")
+
+    log.info("Created storage writer pointing at " + (Config.Storage.data_path, Config.Storage.staging_path))
     val storageWriter = SequentialBinaryV1Storage(Config.Storage.data_path, Config.Storage.staging_path)
-    walWriter.flushedSeries.to(storageWriter.sink).run.run
-    log.info("Created storage writer")
-    // the above code is blocking? the code below works if the above is commented out.
-    // val hostname = Config.Retrieval.hostname
-    // val port = Config.Retrieval.port
-    // log.info(s"Starting timeserieszen http4s-blaze server on '$hostname:$port'")
-    // val httpRetriever = new HttpRetriever(storageWriter, hostname, port).run
+
+    //Spin up listener process for new datapoints
+    Task.fork(Task {
+      val inputStream = UDPListener(Config.Listener.port, Config.Listener.block_size)
+      val walWriter = TextWALHandler(Config.WAL.path, rotateSize=Config.WAL.blockSize)
+      Task.fork( inputStream.to(walWriter.writer).run ).runAsync(_ => ())
+      log.info("Created wal listener on port " +Config.Listener.port)
+      walWriter.flushedSeries.to(storageWriter.sink).run.run
+      log.info("Service is listening for new datapoints...")
+    }).runAsync(_ => ())
+
+    //Spin up retriever (graphite API) process
+    Task.fork(Task {
+      log.info(s"Starting timeserieszen http4s-blaze server on '" + Config.Retrieval.hostname + ":" + Config.Retrieval.port + "'")
+      val httpRetriever = (new HttpRetriever(storageWriter, Config.Retrieval.hostname, Config.Retrieval.port)).run
+    }).runAsync(_ => ())
   }
 }
