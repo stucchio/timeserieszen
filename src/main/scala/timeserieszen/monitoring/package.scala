@@ -5,6 +5,9 @@ import com.timeserieszen.Config
 import org.slf4j.{Logger, LoggerFactory}
 import com.codahale.metrics._
 import java.util.concurrent.TimeUnit
+import scalaz._
+import Scalaz._
+import scalaz.stream._
 
 trait Logging {
   protected lazy val log = LoggerFactory.getLogger(this.getClass)
@@ -31,4 +34,22 @@ trait Metrics {
   protected def histogram(name: String) = Metrics.registry.histogram(metricPrefix + "." + name)
   protected def meter(name: String) = Metrics.registry.meter(metricPrefix + "." + name)
   protected def timer(name: String) = Metrics.registry.timer(metricPrefix + "." + name)
+
+  implicit class StreamMetric[T, M[_]](stream: Process[M,T]) {
+    def count(label: String): Process[M,T] = {
+      val c = counter(label)
+      stream.map( (t:T) => {
+        c.inc()
+        t
+      })
+    }
+
+    def hist(label: String, value: T => Long): Process[M,T] = {
+      val h = histogram(label)
+      stream.map( (t:T) => {
+        h.update(value(t))
+        t
+      })
+    }
+  }
 }
