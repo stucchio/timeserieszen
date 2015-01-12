@@ -25,7 +25,7 @@ case class TextWALHandler(waldir: java.io.File, override val rotateSize: Long = 
   require(queueSize >= 0, "Queue size cannot be negative.")
 
   //Metrics
-  protected val metricPrefix: String = "text_wal_handler"
+  protected val metricPrefix: String = Config.Monitoring.metrics_prefix + ".text_wal_handler"
   private val dataPoints = counter("datapoints")
 
   // val writer = io.resource[WALFile,DataPoint[Double] => Task[Unit]](Task.delay { this }
@@ -40,7 +40,7 @@ case class TextWALHandler(waldir: java.io.File, override val rotateSize: Long = 
         f.write(Utils.datapointToString(d))
         topic.publishOne( d ).run // publish to the topic after flush.
         dataPoints.inc()
-      } })
+      } }).count("records_written")
 
   val topic = async.topic[DataPoint[Double]]()
 
@@ -49,14 +49,14 @@ case class TextWALHandler(waldir: java.io.File, override val rotateSize: Long = 
       val file = new File(waldir, fn)
       io.linesR(file.toString)
     } ).map(Utils.stringToDatapoint _)
-  }
+  }.count("records_read")
 
   private val queue = async.boundedQueue[File](queueSize)
   override protected val notifyQueue = Some(queue)
 
   import WALHandler._
 
-  private val startingProcesses: Process[Task,File] = Process.emitAll(waldir.listFiles())
+  private val startingProcesses: Process[Task,File] = Process.emitAll(waldir.listFiles()).count("wal_files_to_recover")
 
   def flushedSeries: Process[Task, FileRemover \/ Series[Double]] = (startingProcesses ++ queue.dequeue).flatMap(f => {
     val serieses = scala.collection.mutable.HashMap[SeriesIdent, SeriesBuilder[Double]]()
@@ -82,5 +82,5 @@ case class TextWALHandler(waldir: java.io.File, override val rotateSize: Long = 
     val deleter: (() => Unit) = (() => f.delete())
     //Finally emit
     Process.emitAll(data) ++ Process.emit( deleter.left )
-  })
+  }).count("wal_files_recovered")
 }
