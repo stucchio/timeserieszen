@@ -51,5 +51,17 @@ trait Metrics {
         t
       })
     }
+
+    def time[U](label: String, remainder: Process[M,T] => Process[M,U]): Process[M,U] = {
+      // Transform a stream by adding things to it (e.g. remainder = s => s.map(f) )
+      // And measure how long it takes to go from start to end
+      val h = histogram(label)
+      val startTimes = stream.map(_ => System.currentTimeMillis())
+      val realStream = remainder(stream)
+      startTimes.zip(realStream).map( x => {
+        h.update(x._1)
+        x._2
+      })
+    }
   }
 }
